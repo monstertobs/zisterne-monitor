@@ -252,9 +252,10 @@ MIT License – siehe [LICENSE](LICENSE)
 ## 👤 Autor
 
 **Tobias Meier**  
-📧 admin@secutobs.com  
+📧 admin(at)secutobs.com  
 🌐 [github.com/secutobs](https://github.com/secutobs)
 
+## ☕ Support If you find this project useful and want to say thanks, feel free to send a small donation in Bitcoin: **BTC:** 1ADFsY95oPRvVQ36yWcud8zM4qzZZDqf6F No pressure – a GitHub ⭐ star is also very much appreciated!
 ---
 
 *Entwickelt mit ❤️ für alle die ihre Zisterne im Blick behalten wollen.*
