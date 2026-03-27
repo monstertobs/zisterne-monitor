@@ -1,0 +1,56 @@
+Zisterne Monitor
+================
+Version:    0.3.0
+Datum:      2026-03-22
+Autor:      Tobias Meier
+E-Mail:     admin@secutobs.com
+Plattform:  Raspberry Pi Zero 2W + JSN-SR04T
+
+Changelog
+---------
+0.3.0  (2026-03-22)
+  - NEU: Verbrauchsprognose (Tage Vorrat, Ø Verbrauch/Tag)
+  - NEU: Regenereignis-Erkennung mit Verlaufsliste
+  - NEU: Wochenverbrauch-Graph (Mo–So Durchschnitt)
+  - NEU: API /api/prognose, /api/regen, /api/woche
+
+0.2.0  (2026-03-22)
+  - NEU: Liter-Anzeige im Dashboard (Inhalt, Kapazität)
+  - NEU: Zufluss/Abfluss seit letzter Messung mit Pfeil
+  - NEU: Stündlicher Liter-Graph "Inhalt heute"
+  - NEU: Einstellung "Kapazität Zisterne" in Litern
+  - NEU: API /api/liter und /api/liter/verlauf
+
+0.1.6  (2026-03-22)
+  - BUGFIX: Captive Portal iOS/Android – HTTP 302 Redirect
+  - BUGFIX: Portal öffnet sich automatisch beim Verbinden
+
+0.1.5  (2026-03-22)
+  - BUGFIX: reboot am Ende von firstboot.sh ergänzt
+
+0.1.4  (2026-03-22)
+  - BUGFIX: ntpdate vor apt-get (GPG "Not live until" Fehler)
+  - BUGFIX: wpa_supplicant stoppt vor Hotspot-Start
+  - BUGFIX: wifi-sec.pmf 1 verhindert 802.1X Timeout
+  - BUGFIX: 5 Hotspot-Versuche mit Interface-Reset
+
+0.1.3  (2026-03-22)
+  - BUGFIX: 802.1X Fehler beim Hotspot-Start behoben
+  - BUGFIX: Interface-Reset zwischen Versuchen
+
+0.1.2  (2026-03-21)
+  - BUGFIX: NetworkManager-Wartezeit beim Boot
+  - BUGFIX: avahi-utils + libnss-mdns + nsswitch.conf
+  - BUGFIX: apt-get Timeout-Option
+  - BUGFIX: pip3 Fehlerprüfung
+
+0.1.1  (2026-03-21)
+  - BUGFIX: Boot-Pfad automatisch erkannt
+  - BUGFIX: systemd.run statt systemd.unit
+  - BUGFIX: Portal ohne Flask
+  - BUGFIX: nmcli statt wpa_supplicant
+
+0.1.0  (2026-03-21)
+  - Initiale Version: Dashboard, Wasseranimation, Dark Mode
+  - Kalibrierung, Einstellungen, SQLite-Datenbank
+  - 3D-Druckgehäuse und Sensorhalterung

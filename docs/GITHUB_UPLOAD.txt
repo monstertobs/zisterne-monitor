@@ -1,0 +1,36 @@
+# GitHub Upload Anleitung
+# Führe diese Befehle im Terminal aus
+
+# 1. Git installieren prüfen
+git --version
+
+# 2. GitHub Account erstellen (falls noch nicht vorhanden)
+#    → https://github.com/signup
+
+# 3. Neues Repository auf GitHub erstellen
+#    → https://github.com/new
+#    Name: zisterne-monitor
+#    Beschreibung: Intelligente Zisternen-Wasserstandsüberwachung mit Raspberry Pi
+#    Sichtbarkeit: Public
+#    README: NICHT anlegen (haben wir bereits)
+#    → "Create repository" klicken
+
+# 4. Git lokal einrichten (einmalig)
+git config --global user.name "Tobias Meier"
+git config --global user.email "admin@secutobs.com"
+
+# 5. In den Projektordner wechseln und hochladen
+cd ~/Downloads/zisterne_github    # oder wo du die Dateien entpackt hast
+
+git init
+git add .
+git commit -m "Initial release: Zisterne Monitor v0.5.0"
+git branch -M main
+git remote add origin https://github.com/DEIN-USERNAME/zisterne-monitor.git
+git push -u origin main
+
+# 6. GitHub Release erstellen (für die ZIP-Datei)
+#    → Auf GitHub: Releases → "Create a new release"
+#    → Tag: v0.5.0
+#    → Title: Zisterne Monitor v0.5.0
+#    → ZIP-Datei hochladen: Zisterne_Monitor_v0.5.0.zip
