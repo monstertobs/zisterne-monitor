@@ -204,261 +204,155 @@ tr:last-child td{border-bottom:none}
 td:not(:first-child){text-align:right;font-weight:500}
 footer{margin-top:40px;text-align:center;font-size:.75rem;color:var(--mu);font-family:'DM Mono',monospace;border-top:1px solid var(--bd);padding-top:20px}
 @keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-/* ── 3D Zisterne ─────────────────────────────────────── */
+/* ── Querschnitt Zisterne ─────────────────────────────── */
 .mi{display:grid;grid-template-columns:1fr 1fr}
 @media(max-width:680px){.mi{grid-template-columns:1fr}}
-
 .wp{
-  position:relative;
-  background:radial-gradient(ellipse at 30% 20%, #0f2540 0%, #060e1c 60%, #030810 100%);
-  min-height:360px;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
+  position:relative;min-height:420px;overflow:hidden;
+  background:linear-gradient(180deg,#c9e8f5 0%,#b8ddf0 18%,#5a9e3f 18%,#4a8a30 23%,#7a5330 23%,#6b4525 42%,#5c3a1c 70%,#4a2e12 100%);
   border-radius:var(--rl) 0 0 var(--rl);
 }
-@media(max-width:680px){.wp{border-radius:var(--rl) var(--rl) 0 0;min-height:320px}}
-
-/* Hintergrund-Licht */
+@media(max-width:680px){.wp{border-radius:var(--rl) var(--rl) 0 0;min-height:360px}}
 .wp::before{
-  content:'';position:absolute;
-  width:200px;height:200px;border-radius:50%;
-  background:radial-gradient(circle,rgba(14,165,233,.06),transparent 70%);
-  top:20%;left:30%;pointer-events:none;
+  content:'';position:absolute;top:18%;left:0;right:0;height:5%;
+  background:radial-gradient(ellipse 3px 6px at 8% 50%,#3d7a25 0%,transparent 100%),radial-gradient(ellipse 2px 5px at 15% 30%,#4a8a30 0%,transparent 100%),radial-gradient(ellipse 3px 7px at 22% 60%,#3d7a25 0%,transparent 100%),radial-gradient(ellipse 2px 5px at 30% 40%,#4d8f33 0%,transparent 100%),radial-gradient(ellipse 3px 6px at 38% 55%,#3d7a25 0%,transparent 100%),radial-gradient(ellipse 2px 4px at 50% 30%,#4a8a30 0%,transparent 100%),radial-gradient(ellipse 3px 7px at 62% 60%,#3d7a25 0%,transparent 100%),radial-gradient(ellipse 2px 5px at 72% 35%,#4a8a30 0%,transparent 100%),radial-gradient(ellipse 3px 6px at 82% 55%,#3d7a25 0%,transparent 100%),radial-gradient(ellipse 2px 4px at 92% 40%,#4d8f33 0%,transparent 100%);
+  pointer-events:none;z-index:2;
 }
-
-/* ── Beschriftung ── */
-.wl{
-  position:absolute;top:16px;left:0;right:50px;
-  text-align:center;pointer-events:none;z-index:20;
+.wp::after{
+  content:'';position:absolute;top:23%;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse 4px 3px at 7% 20%,rgba(90,50,20,.4) 0%,transparent 100%),radial-gradient(ellipse 3px 4px at 18% 45%,rgba(80,40,15,.3) 0%,transparent 100%),radial-gradient(ellipse 5px 3px at 28% 65%,rgba(70,35,12,.35) 0%,transparent 100%),radial-gradient(ellipse 3px 5px at 83% 30%,rgba(90,50,20,.4) 0%,transparent 100%),radial-gradient(ellipse 4px 3px at 90% 55%,rgba(80,40,15,.3) 0%,transparent 100%),radial-gradient(ellipse 3px 4px at 76% 70%,rgba(70,35,12,.35) 0%,transparent 100%);
+  pointer-events:none;z-index:2;
 }
-.wpc{
-  font-size:2.8rem;font-weight:700;color:#fff;
-  letter-spacing:-2px;line-height:1;
-  text-shadow:0 0 30px rgba(14,165,233,.4),0 2px 4px rgba(0,0,0,.5);
-  font-variant-numeric:tabular-nums;
+.fill-indicator{
+  position:absolute;top:7px;left:50%;transform:translateX(-50%);
+  background:rgba(255,255,255,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border-radius:12px;padding:7px 16px 8px;min-width:210px;text-align:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.12);z-index:30;white-space:nowrap;
 }
-.wpcu{font-size:1.4rem;font-weight:300;opacity:.55}
-.wlit{font-size:.95rem;font-weight:500;color:rgba(140,200,255,.65);
-  margin-top:4px;font-variant-numeric:tabular-nums}
-.wsl{font-family:'DM Mono',monospace;font-size:.58rem;
-  color:rgba(100,170,255,.45);letter-spacing:2.5px;text-transform:uppercase;margin-top:2px}
-
-/* ── Tank-Wrapper ── */
-.tank3d{
-  position:relative;
-  width:170px;height:260px;
-  margin-top:40px;
-  filter:drop-shadow(0 20px 40px rgba(0,50,120,.5));
+.fi-title{font-size:.7rem;color:#666;margin-bottom:5px;letter-spacing:.2px}
+.fi-title strong{color:#0d1b2a}
+.fi-bar{height:7px;background:#e0e0e0;border-radius:4px;overflow:hidden}
+.fi-bar-inner{height:100%;background:linear-gradient(90deg,#0ea5e9,#38bdf8);border-radius:4px;transition:width 1s}
+.pipe-v-left{
+  position:absolute;width:10px;
+  background:linear-gradient(90deg,#8a9ab0,#b8c8dc,#8a9ab0);
+  border-radius:2px;box-shadow:1px 0 3px rgba(0,0,0,.2);z-index:5;
 }
-
-/* ── Zylinder Körper ── */
-.cyl-body{
-  position:absolute;
-  left:0;right:0;top:0;bottom:0;
-  border-radius:50% 50% 50% 50% / 10% 10% 10% 10%;
-  overflow:hidden;
-  /* Glas-Wand Effekt */
-  background:
-    /* linke Wand-Highlight */
-    radial-gradient(ellipse 12% 60% at 6% 50%, rgba(180,220,255,.18) 0%, transparent 100%),
-    /* rechte Wand-Highlight */
-    radial-gradient(ellipse 8% 50% at 94% 40%, rgba(180,220,255,.1) 0%, transparent 100%),
-    /* Glas-Körper */
-    linear-gradient(90deg,
-      rgba(20,60,120,.25) 0%,
-      rgba(10,30,80,.08) 15%,
-      rgba(5,15,50,.04) 50%,
-      rgba(10,30,80,.08) 85%,
-      rgba(20,60,120,.25) 100%);
-  border: 1.5px solid rgba(100,180,255,.2);
-  border-left: 2px solid rgba(140,200,255,.35);
-  border-right: 2px solid rgba(140,200,255,.25);
-  box-shadow:
-    inset 0 0 30px rgba(0,0,0,.3),
-    0 0 0 1px rgba(60,130,220,.1),
-    0 4px 20px rgba(0,20,80,.4);
+.pipe-v-left::after{
+  content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:3px;height:8px;background:linear-gradient(180deg,transparent,rgba(100,200,255,.8));
+  border-radius:0 0 50% 50%;animation:drip 2s ease-in-out infinite;
 }
-
-/* ── Ellipse oben (3D Deckel) ── */
-.cyl-top{
-  position:absolute;top:-12px;left:-1px;right:-1px;
-  height:24px;border-radius:50%;z-index:15;
-  background:linear-gradient(180deg,
-    rgba(160,210,255,.3) 0%,
-    rgba(80,160,255,.12) 50%,
-    rgba(20,80,180,.08) 100%);
-  border:1.5px solid rgba(120,190,255,.35);
-  box-shadow:0 2px 8px rgba(0,0,0,.3),
-    inset 0 1px 0 rgba(200,230,255,.2);
+@keyframes drip{0%,100%{opacity:0;transform:translateX(-50%) scaleY(0)}60%{opacity:1;transform:translateX(-50%) scaleY(1)}}
+.pipe-h-left{
+  position:absolute;height:10px;
+  background:linear-gradient(180deg,#8a9ab0,#b8c8dc,#8a9ab0);
+  border-radius:2px 0 0 2px;box-shadow:0 1px 3px rgba(0,0,0,.2);z-index:5;
 }
-/* Inneres Highlight im Deckel */
-.cyl-top::after{
-  content:'';position:absolute;
-  left:20%;right:40%;top:4px;height:4px;
-  border-radius:50%;
-  background:rgba(200,230,255,.25);
+.cist-wrap{position:absolute;left:12%;right:12%;top:21%;bottom:3%;z-index:4;}
+.cist-wall{
+  position:absolute;inset:0;
+  border-radius:50% 50% 50% 50%/20% 20% 20% 20%;
+  background:radial-gradient(ellipse at 35% 30%,#c0c8d0,#8a9299 50%,#6e7880 100%);
+  border:2px solid #9aabb8;
+  box-shadow:inset 0 4px 15px rgba(0,0,0,.25),inset 0 -4px 10px rgba(0,0,0,.15),0 6px 24px rgba(0,0,0,.45);
 }
-
-/* ── Ellipse unten ── */
-.cyl-bot{
-  position:absolute;bottom:-12px;left:-1px;right:-1px;
-  height:24px;border-radius:50%;z-index:15;
-  background:linear-gradient(180deg,
-    rgba(5,20,60,.6) 0%,
-    rgba(2,10,40,.8) 100%);
-  border:1.5px solid rgba(40,80,160,.3);
-  box-shadow:0 4px 12px rgba(0,0,0,.5);
+.cist-inner{
+  position:absolute;inset:14px;
+  border-radius:50% 50% 50% 50%/20% 20% 20% 20%;
+  background:#071525;overflow:hidden;
+  box-shadow:inset 0 2px 10px rgba(0,0,0,.5);
 }
-
-/* ── Maßstab ── */
-.cyl-scale{
-  position:absolute;right:-44px;top:0;bottom:0;
-  display:flex;flex-direction:column;justify-content:space-between;
-  pointer-events:none;z-index:20;
-}
-.csm{
-  display:flex;align-items:center;gap:4px;
-  font-family:'DM Mono',monospace;font-size:.56rem;
-  color:rgba(120,180,255,.3);
-}
-.csm::before{content:'';display:block;width:8px;height:1px;
-  background:rgba(100,160,255,.2)}
-
-/* ── Wasser-Füllung ── */
 .cyl-water{
-  position:absolute;left:0;right:0;bottom:0;
-  transition:height 2s cubic-bezier(.34,1.05,.64,1);
-  overflow:hidden;z-index:2;
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(180deg,rgba(20,150,230,.9) 0%,rgba(10,100,190,.95) 35%,rgba(5,70,155,.98) 70%,rgba(2,50,130,1) 100%);
+  transition:height 2s cubic-bezier(.34,1.05,.64,1);overflow:hidden;
 }
-
-/* Wasser-Oberfläche Ellipse */
 .cyl-surface{
-  position:absolute;top:-11px;left:-2px;right:-2px;
-  height:22px;border-radius:50%;z-index:5;
-  background:linear-gradient(180deg,
-    rgba(100,210,255,.95) 0%,
-    rgba(40,170,240,.8)  60%,
-    rgba(14,140,220,.6) 100%);
-  box-shadow:0 -2px 8px rgba(14,165,233,.25);
-  animation:surf 3.5s ease-in-out infinite;
+  position:absolute;top:-10px;left:-3%;right:-3%;height:20px;border-radius:50%;
+  background:linear-gradient(180deg,rgba(120,215,255,.95) 0%,rgba(40,170,240,.75) 60%,transparent 100%);
+  box-shadow:0 -2px 6px rgba(14,165,233,.2);animation:surf 3.5s ease-in-out infinite;
 }
-@keyframes surf{
-  0%,100%{transform:scaleX(1) scaleY(1)}
-  33%{transform:scaleX(1.008) scaleY(.94)}
-  66%{transform:scaleX(.994) scaleY(1.06)}
-}
-/* Glanz auf Wasseroberfläche */
-.cyl-surface::after{
-  content:'';position:absolute;
-  left:15%;right:35%;top:5px;height:3px;
-  border-radius:50%;
-  background:rgba(255,255,255,.35);
-}
-
-/* Wellen unter Oberfläche */
-.cyl-wave,.cyl-wave2{
-  position:absolute;top:8px;left:-70%;right:-70%;
-  height:16px;border-radius:50%;z-index:4;
-}
-.cyl-wave{
-  background:rgba(56,190,255,.2);
-  animation:wv 5s ease-in-out infinite;
-}
-.cyl-wave2{
-  background:rgba(100,210,255,.12);
-  animation:wv 7s ease-in-out infinite reverse 1s;
-}
-@keyframes wv{
-  0%,100%{transform:translateX(0) scaleY(1)}
-  50%{transform:translateX(8px) scaleY(.6)}
-}
-
-/* Wasser-Körper */
-.cyl-wb{
-  position:absolute;top:9px;left:0;right:0;bottom:0;
-  background:linear-gradient(180deg,
-    rgba(20,160,240,.78) 0%,
-    rgba(10,110,200,.88) 30%,
-    rgba(5,75,165,.94)  65%,
-    rgba(2,50,130,.98) 100%);
-}
-
-/* Glanz auf Wasser (Lichtstrahl) */
+@keyframes surf{0%,100%{transform:scaleX(1) scaleY(1)}40%{transform:scaleX(1.01) scaleY(.85)}70%{transform:scaleX(.99) scaleY(1.1)}}
+.cyl-surface::after{content:'';position:absolute;left:18%;right:38%;top:6px;height:3px;border-radius:50%;background:rgba(255,255,255,.4)}
 .cyl-wg{
-  position:absolute;top:9px;left:8%;width:15%;bottom:0;
-  background:linear-gradient(90deg,
-    transparent 0%,
-    rgba(255,255,255,.05) 30%,
-    rgba(255,255,255,.07) 50%,
-    rgba(255,255,255,.03) 70%,
-    transparent 100%);
-  border-radius:0 0 50% 0;
+  position:absolute;top:0;left:12%;width:14%;bottom:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.04) 40%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.03) 60%,transparent);
+  pointer-events:none;
 }
-
-/* Kaustics (Lichtmuster im Wasser) */
-.cyl-caustic{
-  position:absolute;top:9px;left:0;right:0;bottom:0;
-  background:
-    radial-gradient(ellipse 20px 40px at 40% 30%, rgba(100,210,255,.04) 0%, transparent 100%),
-    radial-gradient(ellipse 15px 30px at 70% 60%, rgba(100,210,255,.03) 0%, transparent 100%);
-  animation:caus 8s ease-in-out infinite;
-}
-@keyframes caus{
-  0%,100%{opacity:1;transform:translateY(0)}
-  50%{opacity:.5;transform:translateY(-4px)}
-}
-
-/* Blasen */
 .cyl-bu{position:absolute;inset:0;overflow:hidden;z-index:3}
 .bub{
   position:absolute;bottom:-8px;border-radius:50%;
-  background:radial-gradient(circle at 30% 30%,
-    rgba(255,255,255,.4) 0%,
-    rgba(180,230,255,.15) 40%,
-    rgba(100,180,255,.05) 100%);
+  background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.4) 0%,rgba(180,230,255,.15) 40%,rgba(100,180,255,.05) 100%);
   border:1px solid rgba(255,255,255,.3);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),
-    0 1px 3px rgba(0,0,0,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 3px rgba(0,0,0,.2);
   animation:bub3d var(--bd2,5s) ease-in infinite var(--dl,0s);
 }
 @keyframes bub3d{
-  0%  {transform:translateY(0)    translateX(0)  scale(1);  opacity:.9}
-  20% {transform:translateY(-20%) translateX(2px) scale(1.04)}
-  40% {transform:translateY(-42%) translateX(-2px) scale(.97)}
-  60% {transform:translateY(-62%) translateX(3px) scale(1.02);opacity:.5}
-  80% {transform:translateY(-82%) translateX(-1px) scale(.95);opacity:.25}
-  100%{transform:translateY(-105%) translateX(0) scale(.7); opacity:0}
+  0%{transform:translateY(0) translateX(0) scale(1);opacity:.9}
+  20%{transform:translateY(-20%) translateX(2px) scale(1.04)}
+  40%{transform:translateY(-42%) translateX(-2px) scale(.97)}
+  60%{transform:translateY(-62%) translateX(3px) scale(1.02);opacity:.5}
+  80%{transform:translateY(-82%) translateX(-1px) scale(.95);opacity:.25}
+  100%{transform:translateY(-105%) translateX(0) scale(.7);opacity:0}
 }
-
-/* Licht-Reflexionen am Glas */
-.cyl-refl{
-  position:absolute;top:5%;bottom:5%;left:7px;width:3px;
-  background:linear-gradient(180deg,
-    transparent 0%,
-    rgba(200,230,255,.15) 20%,
-    rgba(200,230,255,.2) 50%,
-    rgba(200,230,255,.1) 80%,
-    transparent 100%);
-  border-radius:4px;z-index:6;pointer-events:none;
+.cist-scale{
+  position:absolute;right:10px;top:0;bottom:0;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:10% 0;pointer-events:none;z-index:15;
 }
-.cyl-refl2{
-  position:absolute;top:15%;bottom:15%;right:9px;width:2px;
-  background:linear-gradient(180deg,
-    transparent,rgba(160,210,255,.08),transparent);
-  border-radius:4px;z-index:6;pointer-events:none;
+.csm{display:flex;align-items:center;gap:3px;font-family:'DM Mono',monospace;font-size:.52rem;color:rgba(160,210,255,.35);line-height:1;}
+.csm::after{content:'';display:block;width:7px;height:1px;background:rgba(160,210,255,.2)}
+.cist-label{
+  position:absolute;top:12%;left:0;right:0;text-align:center;
+  font-size:.65rem;font-weight:700;letter-spacing:3px;
+  color:rgba(255,255,255,.3);text-transform:uppercase;pointer-events:none;z-index:15;
 }
-
-/* Status Badge */
+.ladder{position:absolute;width:12px;z-index:12;}
+.ladder::before,.ladder::after{content:'';position:absolute;top:0;bottom:0;width:2px;background:rgba(160,200,255,.15);border-radius:1px;}
+.ladder::before{left:0}.ladder::after{right:0}
+.cist-manhole{
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:58px;height:18px;
+  background:linear-gradient(180deg,#bcc8d4,#8fa0ae);
+  border-radius:6px 6px 3px 3px;border:1.5px solid #7a8fa0;
+  box-shadow:0 3px 8px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.15);z-index:8;
+}
+.cist-manhole::before{content:'';position:absolute;left:6px;right:6px;top:4px;height:2px;background:rgba(0,0,0,.15);border-radius:2px;}
+.cist-manhole::after{content:'';position:absolute;left:6px;right:6px;bottom:4px;height:2px;background:rgba(0,0,0,.15);border-radius:2px;}
+.pipe-overflow,.pipe-extraction{
+  position:absolute;right:0;height:10px;
+  background:linear-gradient(180deg,#8a9ab0,#b8c8dc,#8a9ab0);
+  border-radius:0 2px 2px 0;box-shadow:0 1px 3px rgba(0,0,0,.25);z-index:7;
+}
+.pump{
+  position:absolute;z-index:8;width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,#6a7a8a,#4a5a6a);border:2px solid #8a9aaa;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;color:rgba(255,255,255,.7);font-weight:700;font-family:'DM Mono',monospace;
+}
+.pipe-label{
+  position:absolute;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  color:#1a2a3a;font-size:.7rem;font-weight:600;padding:4px 10px 4px 8px;border-radius:20px;
+  white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.14);z-index:25;display:flex;align-items:center;gap:5px;
+}
+.pipe-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.wl{position:absolute;left:0;right:0;text-align:center;z-index:20;pointer-events:none;}
+.wpc{
+  font-size:2.6rem;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;
+  text-shadow:0 0 20px rgba(14,165,233,.5),0 2px 6px rgba(0,0,0,.6);font-variant-numeric:tabular-nums;
+}
+.wpcu{font-size:1.2rem;font-weight:300;opacity:.7}
+.wlit{font-size:.88rem;font-weight:500;color:rgba(150,215,255,.75);margin-top:3px;font-variant-numeric:tabular-nums;}
 .wst{
-  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
   padding:5px 16px;border-radius:100px;font-size:.76rem;font-weight:600;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.1);white-space:nowrap;
-  transition:all .5s;z-index:20;
-  text-shadow:0 1px 2px rgba(0,0,0,.3);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  white-space:nowrap;transition:all .5s;z-index:25;text-shadow:0 1px 2px rgba(0,0,0,.2);
 }
-.wok{background:rgba(16,185,129,.22);color:#6ee7b7;border-color:rgba(16,185,129,.22)}
-.wwa{background:rgba(245,158,11,.22);color:#fcd34d;border-color:rgba(245,158,11,.22)}
-.wda{background:rgba(239,68,68,.22);color:#fca5a5;border-color:rgba(239,68,68,.22)}
+.wok{background:rgba(16,185,129,.8);color:#fff;box-shadow:0 2px 8px rgba(16,185,129,.3)}
+.wwa{background:rgba(245,158,11,.8);color:#fff;box-shadow:0 2px 8px rgba(245,158,11,.3)}
+.wda{background:rgba(239,68,68,.8);color:#fff;box-shadow:0 2px 8px rgba(239,68,68,.3)}
 .kp{padding:28px;display:flex;flex-direction:column;justify-content:center}
 .kr{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid var(--bd)}
 .kr:last-child{border-bottom:none}
@@ -527,50 +421,64 @@ HTML_INDEX = """<!DOCTYPE html>
   <div class="mi">
     <div class="wp" id="wp">
 
-      <!-- Beschriftung oben -->
-      <div class="wl">
-        <div class="wpc" id="wpc">–<span class="wpcu">%</span></div>
-        <div class="wsl">Füllstand</div>
-        <div class="wlit" id="wlit-panel">– L</div>
+      <!-- Fill-Indicator oben -->
+      <div class="fill-indicator">
+        <div class="fi-title">Zisternen-Füllstand &nbsp;<strong id="fi-pct">–%</strong></div>
+        <div class="fi-bar"><div class="fi-bar-inner" id="fi-bar" style="width:0%"></div></div>
       </div>
 
-      <!-- 3D Glas-Zylinder -->
-      <div class="tank3d">
+      <!-- Zulauf-Label -->
+      <div class="pipe-label" id="lbl-inlet" style="top:3%;left:2%">
+        <span class="pipe-dot" style="background:#0ea5e9"></span>Zulauf von Dach
+      </div>
 
-        <!-- Maßstab links -->
-        <div class="cyl-scale">
-          <div class="csm">100%</div>
-          <div class="csm">75%</div>
-          <div class="csm">50%</div>
-          <div class="csm">25%</div>
-          <div class="csm">0%</div>
-        </div>
+      <!-- Zulauf-Rohr (vertikal vom Dach, horizontal in Zisterne) -->
+      <div class="pipe-v-left" id="pipe-v"></div>
+      <div class="pipe-h-left" id="pipe-h"></div>
 
-        <!-- Zylinder Körper (Glas-Rohr) -->
-        <div class="cyl-body">
-          <div class="cyl-refl"></div>
-          <div class="cyl-refl2"></div>
-
-          <!-- Wasser-Füllung -->
-          <div class="cyl-water" id="wf" style="height:0%">
-            <!-- Wellen auf Wasseroberfläche -->
-            <div class="cyl-surface">
-              <div class="cyl-wave"></div>
-              <div class="cyl-wave2"></div>
+      <!-- Zisterne Querschnitt -->
+      <div class="cist-wrap">
+        <div class="cist-wall">
+          <div class="cist-inner" id="cist-inner">
+            <div class="cist-label">Zisterne</div>
+            <div class="cist-scale">
+              <div class="csm">100%</div>
+              <div class="csm">80%</div>
+              <div class="csm">60%</div>
+              <div class="csm">40%</div>
+              <div class="csm">20%</div>
+              <div class="csm">0%</div>
             </div>
-            <!-- Wasser-Körper -->
-            <div class="cyl-wb"></div>
-            <!-- Glanz -->
-            <div class="cyl-wg"></div>
-            <!-- Blasen -->
-            <div class="cyl-bu" id="bu"></div>
+            <div class="ladder" id="ladder"></div>
+            <!-- Wasser-Füllung -->
+            <div class="cyl-water" id="wf" style="height:0%">
+              <div class="cyl-surface"></div>
+              <div class="cyl-wg"></div>
+              <div class="cyl-bu" id="bu"></div>
+            </div>
+            <!-- Prozentanzeige -->
+            <div class="wl" id="wl">
+              <div class="wpc" id="wpc">–<span class="wpcu">%</span></div>
+              <div class="wlit" id="wlit-panel">– L</div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Deckel oben -->
-        <div class="cyl-top"></div>
-        <!-- Boden unten -->
-        <div class="cyl-bot"></div>
+      <!-- Einstiegsschacht -->
+      <div class="cist-manhole" id="cist-manhole"></div>
+
+      <!-- Überlauf -->
+      <div class="pipe-overflow" id="pipe-overflow"></div>
+      <div class="pipe-label" id="lbl-overflow" style="right:2%">
+        <span class="pipe-dot" style="background:#f59e0b"></span>Überlauf
+      </div>
+
+      <!-- Entnahme / Pumpe -->
+      <div class="pipe-extraction" id="pipe-extraction"></div>
+      <div class="pump" id="pump">P</div>
+      <div class="pipe-label" id="lbl-extraction" style="right:2%">
+        <span class="pipe-dot" style="background:#10b981"></span>Entnahme
       </div>
 
       <!-- Status Badge -->
@@ -708,14 +616,9 @@ function upW(p, liter){
   document.getElementById('wpc').innerHTML=
     Math.round(p)+'<span class="wpcu">%</span>';
 
-  // Hintergrundfarbe je nach Füllstand
-  const wp=document.getElementById('wp');
-  if(wp){
-    if(p<15) wp.style.background='linear-gradient(175deg,#1a0505,#2a0808)';
-    else if(p<20) wp.style.background='linear-gradient(175deg,#1a1005,#2a1a08)';
-    else if(p>90) wp.style.background='linear-gradient(175deg,#051a20,#082030)';
-    else wp.style.background='linear-gradient(175deg,#0d1f33,#091524)';
-  }
+  // Fill-Indicator Bar + Prozenttext
+  const fb=document.getElementById('fi-bar');if(fb)fb.style.width=p+'%';
+  const fp=document.getElementById('fi-pct');if(fp)fp.textContent=Math.round(p)+'%';
 
   // Status-Badge
   const ws=document.getElementById('wst');
@@ -856,6 +759,67 @@ load();loadExtra();
 setInterval(load,{{ cfg.intervall_sek }}000);
 setInterval(loadExtra,300000);
 setTimeout(()=>setR('24h',document.querySelector('.tpb.a')),400);
+// Rohre + Leiter positionieren nach Render
+function positionPipes(){
+  const wp=document.getElementById('wp');
+  const ci=document.getElementById('cist-inner');
+  if(!wp||!ci)return;
+  const wpr=wp.getBoundingClientRect();
+  const cir=ci.getBoundingClientRect();
+  const relT=cir.top-wpr.top,relL=cir.left-wpr.left;
+  const relR=wpr.right-cir.right;
+  const ciH=cir.height,ciW=cir.width;
+  // Zulauf vertikal
+  const pv=document.getElementById('pipe-v');
+  const inletY=relT+ciH*0.38;
+  if(pv){pv.style.left=(relL-8)+'px';pv.style.top='0';pv.style.height=inletY+'px';}
+  // Zulauf horizontal
+  const ph=document.getElementById('pipe-h');
+  if(ph){ph.style.top=(inletY-5)+'px';ph.style.left='0';ph.style.width=(relL+2)+'px';}
+  // Überlauf
+  const ovY=relT+ciH*0.13;
+  const pov=document.getElementById('pipe-overflow');
+  if(pov){pov.style.top=(ovY-5)+'px';pov.style.width=(relR+6)+'px';}
+  const lov=document.getElementById('lbl-overflow');
+  if(lov){lov.style.top=(ovY-14)+'px';lov.style.bottom='auto';}
+  // Entnahme
+  const exY=relT+ciH*0.84;
+  const pex=document.getElementById('pipe-extraction');
+  if(pex){pex.style.top=(exY-5)+'px';pex.style.width=(relR+6)+'px';}
+  const pmp=document.getElementById('pump');
+  if(pmp){pmp.style.left=(relL+ciW*0.45)+'px';pmp.style.top=(relT+ciH*0.78)+'px';}
+  const lex=document.getElementById('lbl-extraction');
+  if(lex){lex.style.top=(exY-14)+'px';lex.style.bottom='auto';}
+  // Schacht-Deckel
+  const mh=document.getElementById('cist-manhole');
+  if(mh){mh.style.top=(relT-14)+'px';}
+  // Prozentanzeige (über der Wasserlinie)
+  const wf=document.getElementById('wf');
+  const wll=document.getElementById('wl');
+  if(wf&&wll){
+    const h=parseFloat(wf.style.height)||0;
+    const waterTop=relT+ciH*(1-h/100);
+    wll.style.top=(waterTop+ciH*h/100*0.3)+'px';
+    wll.style.bottom='auto';
+  }
+  // Leiter-Sprossen
+  const ldr=document.getElementById('ladder');
+  if(ldr&&!ldr.dataset.init){
+    ldr.dataset.init='1';
+    ldr.style.left=(relL+ciW*0.72)+'px';
+    ldr.style.top=(relT+ciH*0.06)+'px';
+    ldr.style.height=(ciH*0.86)+'px';
+    ldr.style.position='absolute';
+    const rungs=Math.floor(ciH*0.86/22);
+    for(let i=0;i<rungs;i++){
+      const r=document.createElement('div');
+      r.style.cssText='position:absolute;left:0;right:0;top:'+Math.round(i/rungs*100)+'%;height:1px;background:rgba(160,200,255,.12)';
+      ldr.appendChild(r);
+    }
+  }
+}
+window.addEventListener('load',positionPipes);
+window.addEventListener('resize',positionPipes);
 </script></body></html>"""
 
 HTML_KAL = """<!DOCTYPE html>
