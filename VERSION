@@ -1,13 +1,18 @@
 Zisterne Monitor
 ================
-Version:    0.3.0
-Datum:      2026-03-22
+Version:    0.3.1
+Datum:      2026-03-31
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
 Plattform:  Raspberry Pi Zero 2W + JSN-SR04T
 
 Changelog
 ---------
+0.3.1  (2026-03-31)
+  - NEU: Plausibilitäts-Check für Messwerte (Ausreißer-Filterung)
+  - Neue Einstellung: plausibilitaets_schwelle_cm (Standard: 10 cm)
+  - Messungen die mehr als den Schwellwert vom Median der letzten 5 Werte abweichen werden verworfen
+
 0.3.0  (2026-03-22)
   - NEU: Verbrauchsprognose (Tage Vorrat, Ø Verbrauch/Tag)
   - NEU: Regenereignis-Erkennung mit Verlaufsliste
