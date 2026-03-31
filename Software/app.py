@@ -12,7 +12,7 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.5.2"
+__version__     = "0.5.3"
 __version_date__ = "2026-03-31"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
@@ -346,7 +346,7 @@ footer{margin-top:40px;text-align:center;font-size:.75rem;color:var(--mu);font-f
   border-radius:0 2px 2px 0;box-shadow:0 1px 3px rgba(0,0,0,.25);z-index:7;
 }
 .pump{
-  position:absolute;z-index:8;width:22px;height:22px;border-radius:50%;
+  position:absolute;z-index:8;width:52px;height:22px;border-radius:11px;
   background:linear-gradient(135deg,#6a7a8a,#4a5a6a);border:2px solid #8a9aaa;
   box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;
   font-size:.55rem;color:rgba(255,255,255,.7);font-weight:700;font-family:'DM Mono',monospace;
@@ -496,7 +496,7 @@ HTML_INDEX = """<!DOCTYPE html>
 
       <!-- Entnahme / Pumpe -->
       <div class="pipe-extraction" id="pipe-extraction"></div>
-      <div class="pump" id="pump">P</div>
+      <div class="pump" id="pump">Pumpe</div>
       <div class="pipe-label" id="lbl-extraction" style="right:2%">
         <span class="pipe-dot" style="background:#10b981"></span>Entnahme
       </div>
