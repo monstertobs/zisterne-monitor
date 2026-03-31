@@ -12,8 +12,8 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.5.0"
-__version_date__ = "2026-03-22"
+__version__     = "0.5.1"
+__version_date__ = "2026-03-31"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
 __project__     = "Zisterne Monitor"
@@ -42,6 +42,7 @@ DEFAULT_CFG = {
     "standort_lat":  50.11,
     "standort_lon":   8.68,
     "abfluss_koeff":  0.8,
+    "plausibilitaets_schwelle_cm": 10,
 }
 
 def cfg_laden():
@@ -135,9 +136,28 @@ def fuellstand(a):
     n=CFG["tiefe_cm"]-CFG["min_cm"]; w=CFG["tiefe_cm"]-a
     return round(max(0.0,min(100.0,(w/n)*100)),1), round(max(0,w),1)
 
+def plausibilitaet_pruefen(neuer_abstand):
+    """Prüft ob eine neue Messung plausibel ist (kein Ausreißer).
+    Vergleicht den neuen Wert mit dem Median der letzten 5 gespeicherten Messungen.
+    Gibt False zurück wenn die Abweichung den konfigurierten Schwellwert überschreitet."""
+    schwelle = CFG.get("plausibilitaets_schwelle_cm", 10)
+    with sqlite3.connect(DB_PFAD) as c:
+        rows = c.execute("SELECT abstand FROM messungen ORDER BY id DESC LIMIT 5").fetchall()
+    if len(rows) < 3:
+        return True  # Zu wenig Referenzwerte → akzeptieren
+    letzte_werte = [r[0] for r in rows]
+    median = sorted(letzte_werte)[len(letzte_werte) // 2]
+    abweichung = abs(neuer_abstand - median)
+    if abweichung > schwelle:
+        print(f"[PLAUSIBILITÄT] Ausreißer verworfen: {neuer_abstand:.1f}cm "
+              f"(Median: {median:.1f}cm, Abweichung: {abweichung:.1f}cm > {schwelle}cm)")
+        return False
+    return True
+
 def messen():
     a=abstand_messen()
     if a is None: return
+    if not plausibilitaet_pruefen(a): return
     f,w=fuellstand(a); db_speichern(round(a,1),f,w)
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {f}% | {w}cm | {a:.1f}cm")
 
