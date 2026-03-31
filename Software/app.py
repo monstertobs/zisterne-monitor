@@ -12,7 +12,7 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.5.1"
+__version__     = "0.5.2"
 __version_date__ = "2026-03-31"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
@@ -920,7 +920,7 @@ let liveMsgTimer = null;
 
 async function liveMessen(){
   try{
-    const d=await fetch('/api/aktuell').then(r=>r.json());
+    const d=await fetch('/api/sensor').then(r=>r.json());
     if(d&&d.abstand){
       document.getElementById('la').innerHTML=`${d.abstand}<span style="font-size:1rem;color:var(--mu)"> cm</span>`;
       document.getElementById('lf').innerHTML=`${d.fuellstand}<span style="font-size:1rem;color:var(--mu)"> %</span>`;
@@ -1569,6 +1569,15 @@ def index():
 
 @app.route('/api/aktuell')
 def api_aktuell(): return jsonify(db_letzte())
+
+@app.route('/api/sensor')
+def api_sensor():
+    """Direkte Sensor-Messung ohne DB-Speicherung (für Live-Kalibrierung)."""
+    a = abstand_messen()
+    if a is None:
+        return jsonify({"fehler": "Sensor nicht erreichbar"})
+    f, w = fuellstand(round(a, 1))
+    return jsonify({"abstand": round(a, 1), "fuellstand": f, "wasser_cm": w})
 
 @app.route('/api/range')
 def api_range():
