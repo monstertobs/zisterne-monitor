@@ -720,10 +720,16 @@ if ! grep -q "^dtoverlay=disable-bt" "${BOOT_DIR}/config.txt" 2>/dev/null; then
     echo "✓ Bluetooth-UART getrennt (dtoverlay=disable-bt) – GPIO 14/15 = PL011"
 fi
 # Serial-Konsole aus cmdline.txt entfernen (Port für Sensor freigeben)
-if grep -q "console=serial0" "${BOOT_DIR}/cmdline.txt" 2>/dev/null; then
-    sed -i 's/console=serial0,[0-9]* //g' "${BOOT_DIR}/cmdline.txt"
-    echo "✓ Serial-Konsole deaktiviert (/dev/serial0 für Sensor frei)"
-fi
+# Robust: entfernt alle Varianten (serial0, ttyAMA0, mit/ohne Leerzeichen davor/dahinter)
+sed -i 's/ console=serial[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+sed -i 's/console=serial[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+sed -i 's/ console=ttyAMA[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+sed -i 's/console=ttyAMA[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+echo "✓ Serial-Konsole aus cmdline.txt entfernt"
+# serial-getty auf ttyAMA0 deaktivieren (würde den UART-Port blockieren)
+systemctl disable serial-getty@ttyAMA0.service 2>/dev/null || true
+systemctl stop serial-getty@ttyAMA0.service 2>/dev/null || true
+echo "✓ serial-getty@ttyAMA0 deaktiviert"
 
 # systemd.run aus cmdline.txt entfernen (Einmalig-Ausführung sicherstellen)
 if grep -q "systemd.run" "${BOOT_DIR}/cmdline.txt" 2>/dev/null; then
