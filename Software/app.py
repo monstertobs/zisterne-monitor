@@ -2,18 +2,18 @@
 """
 ╔══════════════════════════════════════════════════════════╗
 ║              ZISTERNE MONITOR                            ║
-║  Raspberry Pi Zero 2W + JSN-SR04T Ultraschallsensor     ║
+║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.2.0                                         ║
-║  Datum:    2026-03-21                                    ║
+║  Version:  0.6.0                                         ║
+║  Datum:    2026-04-01                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
 ╚══════════════════════════════════════════════════════════╝
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.5.3"
-__version_date__ = "2026-03-31"
+__version__     = "0.6.0"
+__version_date__ = "2026-04-01"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
 __project__     = "Zisterne Monitor"
@@ -33,8 +33,7 @@ DEFAULT_CFG = {
     "tiefe_cm":      240,
     "min_cm":        25,
     "intervall_sek": 60,
-    "trig_pin":      23,
-    "echo_pin":      24,
+    "serial_port":   "/dev/serial0",
     "warnung_leer":  20,
     "warnung_voll":  90,
     "kapazitaet_l":  5000,
@@ -59,14 +58,13 @@ CFG = cfg_laden()
 cfg_speichern(CFG)
 
 try:
-    import RPi.GPIO as GPIO
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(CFG["trig_pin"], GPIO.OUT)
-    GPIO.setup(CFG["echo_pin"], GPIO.IN)
-    GPIO_OK = True
+    import serial as _serial
+    _ser = _serial.Serial(CFG["serial_port"], 9600, timeout=1)
+    SERIAL_OK = True
 except Exception:
-    GPIO_OK = False
-    print("⚠  GPIO nicht verfügbar")
+    _ser = None
+    SERIAL_OK = False
+    print("⚠  Serieller Port nicht verfügbar")
 
 app = Flask(__name__)
 scheduler = BackgroundScheduler()
@@ -119,18 +117,22 @@ def db_roh(n=10):
     return [{"t":r[0],"a":r[1],"f":r[2],"w":r[3]} for r in rows]
 
 def abstand_messen():
-    if not GPIO_OK: return None
+    if not SERIAL_OK or _ser is None: return None
     m=[]
     for _ in range(5):
-        GPIO.output(CFG["trig_pin"],True); time.sleep(0.00001); GPIO.output(CFG["trig_pin"],False)
-        s=time.time()
-        while GPIO.input(CFG["echo_pin"])==0:
-            if time.time()-s>1: return None
-        t1=time.time()
-        while GPIO.input(CFG["echo_pin"])==1:
-            if time.time()-t1>1: return None
-        m.append(((time.time()-t1)*34300)/2); time.sleep(0.1)
-    return sorted(m)[2]
+        try:
+            _ser.write(b'\x01')
+            data = _ser.read(4)
+            if len(data)==4 and data[0]==0xFF:
+                chk = (data[0]+data[1]+data[2]) & 0xFF
+                if chk==data[3]:
+                    dist_mm = (data[1]<<8)|data[2]
+                    m.append(dist_mm/10.0)
+        except Exception:
+            pass
+        time.sleep(0.1)
+    if len(m)<3: return None
+    return sorted(m)[len(m)//2]
 
 def fuellstand(a):
     n=CFG["tiefe_cm"]-CFG["min_cm"]; w=CFG["tiefe_cm"]-a
@@ -1006,17 +1008,11 @@ HTML_EIN = """<!DOCTYPE html>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
 </div></div>
-<div class="sg"><div class="sgl">Hardware / GPIO</div><div class="sc">
-  <div class="sr"><div class="si"><div class="sl">TRIG Pin</div><div class="sd">GPIO BCM</div></div>
+<div class="sg"><div class="sgl">Hardware / Sensor</div><div class="sc">
+  <div class="sr"><div class="si"><div class="sl">Serieller Port</div><div class="sd">SR04M-2 UART</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
-      <input type="hidden" name="feld" value="trig_pin">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.trig_pin }}" min="1" max="40"><span class="ul">GPIO</span></div>
-      <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
-    </form></div>
-  <div class="sr"><div class="si"><div class="sl">ECHO Pin</div><div class="sd">GPIO BCM</div></div>
-    <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
-      <input type="hidden" name="feld" value="echo_pin">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.echo_pin }}" min="1" max="40"><span class="ul">GPIO</span></div>
+      <input type="hidden" name="feld" value="serial_port">
+      <div class="si2"><input type="text" name="wert" value="{{ cfg.serial_port }}" style="width:160px"></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
 </div></div>
@@ -1830,7 +1826,10 @@ def einstellungen():
 @app.route('/einstellungen/speichern', methods=['POST'])
 def ein_speichern():
     feld=request.form.get('feld'); wert=request.form.get('wert','').strip()
-    num={'intervall_sek':(10,3600),'trig_pin':(1,40),'echo_pin':(1,40),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(100,500000),'dachflaeche_m2':(10,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
+    num={'intervall_sek':(10,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(100,500000),'dachflaeche_m2':(10,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
+    if feld=='serial_port':
+        if not wert: return redirect('/einstellungen?err=Port+darf+nicht+leer+sein')
+        CFG['serial_port']=wert[:40]; cfg_speichern(CFG); return redirect('/einstellungen?ok=Gespeichert')
     if feld in ('abfluss_koeff',):
         try:
             v=float(wert)
@@ -1886,5 +1885,5 @@ if __name__ == '__main__':
     try:
         app.run(host='0.0.0.0',port=80,use_reloader=False)
     finally:
-        if GPIO_OK: GPIO.cleanup()
+        if _ser: _ser.close()
         scheduler.shutdown()
