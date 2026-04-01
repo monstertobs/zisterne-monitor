@@ -4,7 +4,7 @@
 
 Ein vollständiges DIY-Projekt zur Überwachung des Füllstands einer Regenwasserzisterne – mit automatischer Installation, elegantem Web-Dashboard, 3D-gedrucktem Gehäuse und Wettervorhersage für den erwarteten Regenwasserzulauf.
 
-![Version](https://img.shields.io/badge/Version-0.5.0-blue)
+![Version](https://img.shields.io/badge/Version-0.6.0-blue)
 ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20Zero%202W-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Language](https://img.shields.io/badge/Python-3.x-yellow)
@@ -42,7 +42,7 @@ Die Idee war ein **vollautomatisches, selbst gehostetes Überwachungssystem** da
 ### Hardware
 - 🖨️ **3D-Druck Gehäuse** – für Pi Zero 2WH, druckfertige SCAD-Dateien
 - 🔧 **Sensor-Halterung** – für DN25-Rohr oder Wandmontage mit Langlöchern
-- 📏 **Präzise Messung** – JSN-SR04T Ultraschallsensor (wasserdicht)
+- 📏 **Präzise Messung** – SR04M-2 Ultraschallsensor (wasserdicht, UART)
 
 ---
 
@@ -51,12 +51,12 @@ Die Idee war ein **vollautomatisches, selbst gehostetes Überwachungssystem** da
 | Bauteil | Beschreibung | Preis ca. |
 |---|---|---|
 | Raspberry Pi Zero 2 WH | Mit vorgelötetem GPIO-Header | ~18 € |
-| JSN-SR04T | Wasserdichter Ultraschallsensor | ~5 € |
+| SR04M-2 | Wasserdichter Ultraschallsensor (UART) | ~5 € |
 | MicroSD 32GB | SanDisk Extreme A1 | ~9 € |
 | Micro-USB Netzteil 5V/2A | Für den Pi | ~8 € |
-| 1 kΩ Widerstand | Für Spannungsteiler ECHO-Pin | < 1 € |
-| 2 kΩ Widerstand | Für Spannungsteiler ECHO-Pin | < 1 € |
-| KNX/EIB Kabel 2x2x0,8mm | Für Sensor-Verbindung (bis 5m) | ~8 € |
+| 1 kΩ Widerstand | Spannungsteiler Modul-TX → Pi-RX | < 1 € |
+| 2 kΩ Widerstand | Spannungsteiler Modul-TX → Pi-RX | < 1 € |
+| JY(ST)Y 2x2x0,8mm (EIB/KNX) | Für Sensor-Verbindung (bis 10m) | ~8 € |
 | **Gesamt** | | **~50 €** |
 
 ---
@@ -64,18 +64,22 @@ Die Idee war ein **vollautomatisches, selbst gehostetes Überwachungssystem** da
 ## 🔌 Verkabelung
 
 ```
-HC-SR04 / JSN-SR04T        Spannungsteiler        Pi Zero 2 WH
-──────────────────         ───────────────        ────────────
-VCC   ──────────────────────────────────────────── Pin 2  (5V)
-GND   ──────────────────────────────────────────── Pin 6  (GND)
-TRIG  ──────────────────────────────────────────── Pin 16 (GPIO 23)
-ECHO  ── 1kΩ ── Punkt A ── 2kΩ ── GND (Pin 9)
+SR04M-2 (UART)       Spannungsteiler        Pi Zero 2 WH
+──────────────        ───────────────        ────────────
+5V    ─────────────────────────────────────── Pin 2  (5V)
+GND   ─────────────────────────────────────── Pin 6  (GND)
+RX    ──────────────────────────────────────── Pin 8  (GPIO 14 / UART TX)
+TX    ── 1kΩ ── Punkt A ── 2kΩ ── GND (Pin 9)
                     │
-                    └───────────────────────────── Pin 18 (GPIO 24)
+                    └──────────────────────── Pin 10 (GPIO 15 / UART RX)
 ```
 
-> ⚠️ **Wichtig:** Der ECHO-Pin liefert 5V – der Pi verträgt nur 3,3V!  
-> Der Spannungsteiler ist **Pflicht** und schützt den GPIO-Pin vor Schäden.
+> ⚠️ **Wichtig:** Das Modul arbeitet mit 5V – der Pi verträgt nur 3,3V!
+> Der Spannungsteiler auf der **TX-Leitung des Moduls** (→ Pi RX) ist **Pflicht**.
+> Die TX-Leitung des Pi (3,3V → Modul RX) kann direkt verbunden werden.
+
+**Kabelempfehlung:** JY(ST)Y 2x2x0,8mm (EIB/KNX) – bis 10m, Folienschirm.
+Schirm-Drainagedraht **nur Pi-seitig** an GND anschließen (kein Erdschleifenrisiko).
 
 ---
 
@@ -175,7 +179,7 @@ Raspberry Pi Zero 2W
 ├── Python 3
 │   ├── Flask          – Web-Dashboard
 │   ├── APScheduler    – Automatische Messungen
-│   ├── RPi.GPIO       – GPIO-Sensor-Steuerung
+│   ├── pyserial       – UART-Sensor-Kommunikation (SR04M-2)
 │   └── SQLite         – Messdaten-Datenbank
 ├── NetworkManager     – WLAN-Verwaltung
 └── avahi-daemon       – zisterne.local mDNS
@@ -222,6 +226,7 @@ Siehe [VERSION](VERSION) für den vollständigen Changelog.
 
 | Version | Highlights |
 |---|---|
+| v0.6.0 | SR04M-2 UART-Sensor, headless UART-Setup, bis 10m Kabel |
 | v0.5.0 | Regenvorhersage, 3D Glas-Tank, WLAN-Verwaltung |
 | v0.4.x | Captive Portal WLAN, WLAN-Signalstärke |
 | v0.3.x | Verbrauchsprognose, Regenerkennung, Wochenverbrauch |
