@@ -1,6 +1,6 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║   ZISTERNE MONITOR – First Boot Setup v0.3.2                   ║
+# ║   ZISTERNE MONITOR – First Boot Setup v0.6.0                   ║
 # ║   Tobias Meier · admin@secutobs.com                            ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
@@ -18,8 +18,7 @@ ZISTERNE_NAME="Zisterne Garten"
 ZISTERNE_TIEFE_CM=240
 ZISTERNE_MIN_CM=25
 MESS_INTERVALL=60
-TRIG_PIN=23
-ECHO_PIN=24
+SERIAL_PORT="/dev/serial0"
 HOTSPOT_SSID="Zisterne-Setup"
 HOTSPOT_PASS="zisterne123"
 # ══════════════════════════════════════════════════════════════════
@@ -41,7 +40,7 @@ exec > >(tee -a "$LOG") 2>&1
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║   ZISTERNE MONITOR – FIRST BOOT v0.3.2      ║"
+echo "║   ZISTERNE MONITOR – FIRST BOOT v0.6.0      ║"
 echo "║   $(date '+%Y-%m-%d %H:%M:%S')              ║"
 echo "╚══════════════════════════════════════════════╝"
 echo "  Boot-Dir: $BOOT_DIR"
@@ -611,8 +610,7 @@ cat > "$PROJECT_DIR/config.json" << CFGEOF
   "tiefe_cm":      $ZISTERNE_TIEFE_CM,
   "min_cm":        $ZISTERNE_MIN_CM,
   "intervall_sek": $MESS_INTERVALL,
-  "trig_pin":      $TRIG_PIN,
-  "echo_pin":      $ECHO_PIN,
+  "serial_port":   "$SERIAL_PORT",
   "warnung_leer":  20,
   "warnung_voll":  90
 }
@@ -695,6 +693,18 @@ fi
 # ══════════════════════════════════════════════════════════════════
 echo ""
 echo "── Phase 5: Abschluss ──"
+
+# ── UART für SR04M-2 Sensor aktivieren ───────────────────────────
+# enable_uart=1 in config.txt (Hardware-UART einschalten)
+if ! grep -q "^enable_uart=1" "${BOOT_DIR}/config.txt" 2>/dev/null; then
+    echo "enable_uart=1" >> "${BOOT_DIR}/config.txt"
+    echo "✓ UART aktiviert (enable_uart=1 in config.txt)"
+fi
+# Serial-Konsole aus cmdline.txt entfernen (Port für Sensor freigeben)
+if grep -q "console=serial0" "${BOOT_DIR}/cmdline.txt" 2>/dev/null; then
+    sed -i 's/console=serial0,[0-9]* //g' "${BOOT_DIR}/cmdline.txt"
+    echo "✓ Serial-Konsole deaktiviert (/dev/serial0 für Sensor frei)"
+fi
 
 # systemd.run aus cmdline.txt entfernen (Einmalig-Ausführung sicherstellen)
 if grep -q "systemd.run" "${BOOT_DIR}/cmdline.txt" 2>/dev/null; then
