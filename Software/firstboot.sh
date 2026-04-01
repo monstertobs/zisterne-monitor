@@ -582,13 +582,13 @@ echo "→ Python-Pakete installieren..."
 pip3 install --break-system-packages --quiet \
     flask \
     apscheduler \
-    RPi.GPIO \
+    pyserial \
     2>&1
 
 if [ $? -ne 0 ]; then
     echo "✗ pip3 install fehlgeschlagen"
     echo "  Versuche ohne --quiet..."
-    pip3 install --break-system-packages flask apscheduler RPi.GPIO 2>&1
+    pip3 install --break-system-packages flask apscheduler pyserial 2>&1
     if [ $? -ne 0 ]; then
         echo "✗ Python-Pakete konnten nicht installiert werden"
         exit 1
