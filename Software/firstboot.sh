@@ -713,6 +713,12 @@ if ! grep -q "^enable_uart=1" "${BOOT_DIR}/config.txt" 2>/dev/null; then
     echo "enable_uart=1" >> "${BOOT_DIR}/config.txt"
     echo "✓ UART aktiviert (enable_uart=1 in config.txt)"
 fi
+# disable-bt: Bluetooth vom PL011-UART trennen → GPIO 14/15 bekommen den
+# vollwertigen Hardware-UART (nötig auf Pi Zero 2W für zuverlässige Kommunikation)
+if ! grep -q "^dtoverlay=disable-bt" "${BOOT_DIR}/config.txt" 2>/dev/null; then
+    echo "dtoverlay=disable-bt" >> "${BOOT_DIR}/config.txt"
+    echo "✓ Bluetooth-UART getrennt (dtoverlay=disable-bt) – GPIO 14/15 = PL011"
+fi
 # Serial-Konsole aus cmdline.txt entfernen (Port für Sensor freigeben)
 if grep -q "console=serial0" "${BOOT_DIR}/cmdline.txt" 2>/dev/null; then
     sed -i 's/console=serial0,[0-9]* //g' "${BOOT_DIR}/cmdline.txt"
