@@ -530,10 +530,21 @@ echo "✓ Zeitzone: $(timedatectl show --property=Timezone --value 2>/dev/null |
 
 echo "→ Systemzeit synchronisieren (wichtig fuer GPG-Signaturen)..."
 apt-get install -y -qq ntpdate 2>/dev/null || true
-ntpdate -u pool.ntp.org 2>/dev/null || ntpdate -u time.google.com 2>/dev/null || true
-# Fallback: timedatectl falls ntpdate nicht klappt
+# ntpdate synchron – wartet auf Antwort
+ntpdate -u pool.ntp.org 2>/dev/null || \
+    ntpdate -u time.google.com 2>/dev/null || \
+    ntpdate -u time.cloudflare.com 2>/dev/null || true
+# systemd-timesyncd aktivieren und auf Synchronisation WARTEN (max 60s)
 timedatectl set-ntp true 2>/dev/null || true
-sleep 5
+echo "→ Warte auf NTP-Synchronisation..."
+for i in $(seq 1 30); do
+    SYNC=$(timedatectl show --property=NTPSynchronized --value 2>/dev/null || echo "no")
+    if [ "$SYNC" = "yes" ]; then
+        echo "✓ NTP synchronisiert nach ${i}x2s"
+        break
+    fi
+    sleep 2
+done
 echo "✓ Systemzeit (Berlin): $(date)"
 
 
@@ -630,12 +641,14 @@ else
     exit 1
 fi
 
-# ── FIX 3: VERSION-Datei mit korrekter Version ───────────────────
+# VERSION aus app.py auslesen und ablegen
+APP_VER_DATE=$(grep -m1 '__version_date__' "$PROJECT_DIR/app.py" \
+    | grep -o '"[^"]*"' | tr -d '"' || echo "$(date +%Y-%m-%d)")
 cat > "$PROJECT_DIR/VERSION" << VEREOF
 Zisterne Monitor
 ================
-Version:  0.1.4
-Datum:    2026-03-21
+Version:  ${APP_VER}
+Datum:    ${APP_VER_DATE}
 Autor:    Tobias Meier
 E-Mail:   admin@secutobs.com
 VEREOF
@@ -723,7 +736,7 @@ echo "✓ Fertig-Flag gesetzt: $DONE_FLAG"
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
-echo "║     ✓  ZISTERNE MONITOR BEREIT  v0.3.2          ║"
+echo "║     ✓  ZISTERNE MONITOR BEREIT  v${APP_VER}        ║"
 echo "╠══════════════════════════════════════════════════╣"
 echo "║  Dashboard:  http://zisterne.local              ║"
 if [ -n "$IP" ]; then
