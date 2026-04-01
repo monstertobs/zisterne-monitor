@@ -1,13 +1,22 @@
 Zisterne Monitor
 ================
-Version:    0.3.1
-Datum:      2026-03-31
+Version:    0.6.0
+Datum:      2026-04-01
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
-Plattform:  Raspberry Pi Zero 2W + JSN-SR04T
+Plattform:  Raspberry Pi Zero 2W + SR04M-2 (UART)
 
 Changelog
 ---------
+0.6.0  (2026-04-01)
+  - NEU: SR04M-2 UART Ultraschallsensor (ersetzt JSN-SR04T GPIO)
+  - Sensoranbindung vollständig auf seriell (9600 Baud, /dev/serial0)
+  - Kein RPi.GPIO mehr – pyserial als neue Abhängigkeit
+  - firstboot.sh: UART automatisch headless aktiviert (enable_uart=1, Serial-Konsole deaktiviert)
+  - Einstellung trig_pin/echo_pin entfernt – serial_port hinzugefügt
+  - Bis 10m Leitungslänge mit JY(ST)Y 2x2x0,8mm EIB-Kabel getestet
+  - Settings-Seite: GPIO-Felder durch Serial Port Eingabe ersetzt
+
 0.3.1  (2026-03-31)
   - NEU: Plausibilitäts-Check für Messwerte (Ausreißer-Filterung)
   - Neue Einstellung: plausibilitaets_schwelle_cm (Standard: 10 cm)
