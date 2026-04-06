@@ -1,6 +1,6 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║   ZISTERNE MONITOR – First Boot Setup v0.6.0                   ║
+# ║   ZISTERNE MONITOR – First Boot Setup v0.7.0                   ║
 # ║   Tobias Meier · admin@secutobs.com                            ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
@@ -40,7 +40,7 @@ exec > >(tee -a "$LOG") 2>&1
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║   ZISTERNE MONITOR – FIRST BOOT v0.6.0      ║"
+echo "║   ZISTERNE MONITOR – FIRST BOOT v0.7.0      ║"
 echo "║   $(date '+%Y-%m-%d %H:%M:%S')              ║"
 echo "╚══════════════════════════════════════════════╝"
 echo "  Boot-Dir: $BOOT_DIR"
@@ -530,17 +530,13 @@ echo "✓ Zeitzone: $(timedatectl show --property=Timezone --value 2>/dev/null |
 
 echo "→ Systemzeit synchronisieren (wichtig fuer GPG-Signaturen)..."
 apt-get install -y -qq ntpdate 2>/dev/null || true
-# ntpdate synchron – wartet auf Antwort
-ntpdate -u pool.ntp.org 2>/dev/null || \
-    ntpdate -u time.google.com 2>/dev/null || \
-    ntpdate -u time.cloudflare.com 2>/dev/null || true
-# systemd-timesyncd aktivieren und auf Synchronisation WARTEN (max 60s)
+ntpdate -u pool.ntp.org 2>/dev/null || ntpdate -u time.google.com 2>/dev/null || true
 timedatectl set-ntp true 2>/dev/null || true
-echo "→ Warte auf NTP-Synchronisation..."
+# Warte bis NTP synchronisiert (max 60s)
 for i in $(seq 1 30); do
     SYNC=$(timedatectl show --property=NTPSynchronized --value 2>/dev/null || echo "no")
     if [ "$SYNC" = "yes" ]; then
-        echo "✓ NTP synchronisiert nach ${i}x2s"
+        echo "✓ NTP synchronisiert (${i}×2s)"
         break
     fi
     sleep 2
@@ -617,13 +613,18 @@ mkdir -p "$PROJECT_DIR"
 # config.json
 cat > "$PROJECT_DIR/config.json" << CFGEOF
 {
-  "name":          "$ZISTERNE_NAME",
-  "tiefe_cm":      $ZISTERNE_TIEFE_CM,
-  "min_cm":        $ZISTERNE_MIN_CM,
-  "intervall_sek": $MESS_INTERVALL,
-  "serial_port":   "$SERIAL_PORT",
-  "warnung_leer":  20,
-  "warnung_voll":  90
+  "name":           "$ZISTERNE_NAME",
+  "tiefe_cm":       $ZISTERNE_TIEFE_CM,
+  "min_cm":         $ZISTERNE_MIN_CM,
+  "intervall_sek":  $MESS_INTERVALL,
+  "serial_port":    "$SERIAL_PORT",
+  "warnung_leer":   20,
+  "warnung_voll":   90,
+  "kapazitaet_l":   5000,
+  "dachflaeche_m2": 100,
+  "standort_lat":   50.11,
+  "standort_lon":   8.68,
+  "abfluss_koeff":  0.8
 }
 CFGEOF
 echo "✓ config.json erstellt"
@@ -641,14 +642,12 @@ else
     exit 1
 fi
 
-# VERSION aus app.py auslesen und ablegen
-APP_VER_DATE=$(grep -m1 '__version_date__' "$PROJECT_DIR/app.py" \
-    | grep -o '"[^"]*"' | tr -d '"' || echo "$(date +%Y-%m-%d)")
+# ── FIX 3: VERSION-Datei mit korrekter Version ───────────────────
 cat > "$PROJECT_DIR/VERSION" << VEREOF
 Zisterne Monitor
 ================
-Version:  ${APP_VER}
-Datum:    ${APP_VER_DATE}
+Version:  0.7.0
+Datum:    2026-04-06
 Autor:    Tobias Meier
 E-Mail:   admin@secutobs.com
 VEREOF
@@ -707,26 +706,27 @@ fi
 echo ""
 echo "── Phase 5: Abschluss ──"
 
-# ── UART für SR04M-2 Sensor aktivieren ───────────────────────────
-# enable_uart=1 in config.txt (Hardware-UART einschalten)
+# ── UART für SR04M-2 aktivieren ───────────────────────────────────
+echo "→ UART für SR04M-2 Sensor aktivieren..."
 if ! grep -q "^enable_uart=1" "${BOOT_DIR}/config.txt" 2>/dev/null; then
     echo "enable_uart=1" >> "${BOOT_DIR}/config.txt"
-    echo "✓ UART aktiviert (enable_uart=1 in config.txt)"
+    echo "✓ enable_uart=1 gesetzt"
 fi
-# disable-bt: Bluetooth vom PL011-UART trennen → GPIO 14/15 bekommen den
-# vollwertigen Hardware-UART (nötig auf Pi Zero 2W für zuverlässige Kommunikation)
 if ! grep -q "^dtoverlay=disable-bt" "${BOOT_DIR}/config.txt" 2>/dev/null; then
     echo "dtoverlay=disable-bt" >> "${BOOT_DIR}/config.txt"
-    echo "✓ Bluetooth-UART getrennt (dtoverlay=disable-bt) – GPIO 14/15 = PL011"
+    echo "✓ dtoverlay=disable-bt gesetzt (PL011 UART freigegeben)"
 fi
-# Serial-Konsole aus cmdline.txt entfernen (Port für Sensor freigeben)
-# Robust: entfernt alle Varianten (serial0, ttyAMA0, mit/ohne Leerzeichen davor/dahinter)
-sed -i 's/ console=serial[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
-sed -i 's/console=serial[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
-sed -i 's/ console=ttyAMA[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
-sed -i 's/console=ttyAMA[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
-echo "✓ Serial-Konsole aus cmdline.txt entfernt"
-# serial-getty auf ttyAMA0 deaktivieren (würde den UART-Port blockieren)
+
+# Serial Console aus cmdline.txt entfernen (blockiert UART)
+if [ -f "${BOOT_DIR}/cmdline.txt" ]; then
+    sed -i 's/ console=serial[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    sed -i 's/console=serial[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    sed -i 's/ console=ttyAMA[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    sed -i 's/console=ttyAMA[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    echo "✓ Serial Console aus cmdline.txt entfernt"
+fi
+
+# Serial Getty Service deaktivieren
 systemctl disable serial-getty@ttyAMA0.service 2>/dev/null || true
 systemctl stop serial-getty@ttyAMA0.service 2>/dev/null || true
 echo "✓ serial-getty@ttyAMA0 deaktiviert"
@@ -747,8 +747,10 @@ echo "✓ Fertig-Flag gesetzt: $DONE_FLAG"
 # Abschluss-Ausgabe
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 echo ""
+APP_VER=$(grep -m1 '__version__' "$PROJECT_DIR/app.py" \
+          | grep -o '"[^"]*"' | tr -d '"' 2>/dev/null || echo "0.6.0")
 echo "╔══════════════════════════════════════════════════╗"
-echo "║     ✓  ZISTERNE MONITOR BEREIT  v${APP_VER}        ║"
+echo "║     ✓  ZISTERNE MONITOR BEREIT  v${APP_VER}          ║"
 echo "╠══════════════════════════════════════════════════╣"
 echo "║  Dashboard:  http://zisterne.local              ║"
 if [ -n "$IP" ]; then

@@ -4,16 +4,16 @@
 ║              ZISTERNE MONITOR                            ║
 ║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.6.0                                         ║
-║  Datum:    2026-04-01                                    ║
+║  Version:  0.7.0                                         ║
+║  Datum:    2026-04-06                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
 ╚══════════════════════════════════════════════════════════╝
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.6.0"
-__version_date__ = "2026-04-01"
+__version__     = "0.7.0"
+__version_date__ = "2026-04-06"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
 __project__     = "Zisterne Monitor"
@@ -41,7 +41,6 @@ DEFAULT_CFG = {
     "standort_lat":  50.11,
     "standort_lon":   8.68,
     "abfluss_koeff":  0.8,
-    "plausibilitaets_schwelle_cm": 10,
 }
 
 def cfg_laden():
@@ -57,14 +56,52 @@ def cfg_speichern(c):
 CFG = cfg_laden()
 cfg_speichern(CFG)
 
+_ser = None
+SERIAL_OK = False
+import threading as _threading
+_ser_lock = _threading.Lock()
 try:
     import serial as _serial
-    _ser = _serial.Serial(CFG["serial_port"], 9600, timeout=1)
-    SERIAL_OK = True
 except Exception:
+    _serial = None
+
+def _open_serial():
+    global _ser, SERIAL_OK
+    if _serial is None:
+        _ser = None
+        SERIAL_OK = False
+        return False
+    try:
+        _ser = _serial.Serial(CFG["serial_port"], 9600, timeout=0.35)
+        try:
+            _ser.reset_input_buffer()
+            _ser.reset_output_buffer()
+        except Exception:
+            pass
+        SERIAL_OK = True
+        return True
+    except Exception as e:
+        _ser = None
+        SERIAL_OK = False
+        print("⚠  Serieller Port nicht verfügbar:", e)
+        return False
+
+def _close_serial():
+    global _ser, SERIAL_OK
+    try:
+        if _ser is not None:
+            _ser.close()
+    except Exception:
+        pass
     _ser = None
     SERIAL_OK = False
-    print("⚠  Serieller Port nicht verfügbar")
+
+def _reopen_serial():
+    _close_serial()
+    time.sleep(0.1)
+    return _open_serial()
+
+_open_serial()
 
 app = Flask(__name__)
 scheduler = BackgroundScheduler()
@@ -116,50 +153,86 @@ def db_roh(n=10):
         rows = c.execute("SELECT zeitpunkt,abstand,fuellstand,wasser_cm FROM messungen ORDER BY id DESC LIMIT ?",(n,)).fetchall()
     return [{"t":r[0],"a":r[1],"f":r[2],"w":r[3]} for r in rows]
 
+def _parse_uart_frame(buf):
+    """Parst SR04M-2 UART-Frames: FF H L SUM"""
+    while len(buf) >= 4:
+        if buf[0] != 0xFF:
+            buf.pop(0)
+            continue
+        h, l, s = buf[1], buf[2], buf[3]
+        if ((0xFF + h + l) & 0xFF) == s:
+            dist_mm = (h << 8) | l
+            del buf[:4]
+            return dist_mm
+        buf.pop(0)
+    return None
+
 def abstand_messen():
-    if not SERIAL_OK or _ser is None: return None
-    m=[]
-    for _ in range(5):
+    """
+    Liest den SR04M-2 im UART-Auto-Output-Modus aus.
+    Erwartetes Frame: FF H L SUM bei 9600 Baud.
+    6000 mm wird als "außer Reichweite / kein Echo" verworfen.
+    Gibt den Median gültiger Werte in cm zurück.
+    """
+    global _ser
+
+    if _serial is None:
+        return None
+
+    if not _ser_lock.acquire(timeout=8):
+        return None
+
+    werte = []
+    buf = bytearray()
+
+    try:
+        if _ser is None or not SERIAL_OK:
+            if not _open_serial():
+                return None
+
         try:
-            _ser.write(b'\x01')
-            data = _ser.read(4)
-            if len(data)==4 and data[0]==0xFF:
-                chk = (data[0]+data[1]+data[2]) & 0xFF
-                if chk==data[3]:
-                    dist_mm = (data[1]<<8)|data[2]
-                    m.append(dist_mm/10.0)
+            _ser.reset_input_buffer()
         except Exception:
             pass
-        time.sleep(0.1)
-    if len(m)<3: return None
-    return sorted(m)[len(m)//2]
+
+        start = time.time()
+
+        while time.time() - start < 0.6:
+            try:
+                data = _ser.read(32)
+                if data:
+                    buf.extend(data)
+                    while True:
+                        dist_mm = _parse_uart_frame(buf)
+                        if dist_mm is None:
+                            break
+                        if dist_mm == 6000:
+                            continue
+                        if 50 <= dist_mm <= 6000:
+                            werte.append(dist_mm / 10.0)
+            except Exception as e:
+                print(f"⚠ UART Lesefehler, öffne Port neu: {e}")
+                if not _reopen_serial():
+                    return None
+                buf = bytearray()
+
+            time.sleep(0.03)
+    finally:
+        _ser_lock.release()
+
+    if not werte:
+        return None
+
+    werte.sort()
+    return round(werte[len(werte) // 2], 1)
 
 def fuellstand(a):
     n=CFG["tiefe_cm"]-CFG["min_cm"]; w=CFG["tiefe_cm"]-a
     return round(max(0.0,min(100.0,(w/n)*100)),1), round(max(0,w),1)
 
-def plausibilitaet_pruefen(neuer_abstand):
-    """Prüft ob eine neue Messung plausibel ist (kein Ausreißer).
-    Vergleicht den neuen Wert mit dem Median der letzten 5 gespeicherten Messungen.
-    Gibt False zurück wenn die Abweichung den konfigurierten Schwellwert überschreitet."""
-    schwelle = CFG.get("plausibilitaets_schwelle_cm", 10)
-    with sqlite3.connect(DB_PFAD) as c:
-        rows = c.execute("SELECT abstand FROM messungen ORDER BY id DESC LIMIT 5").fetchall()
-    if len(rows) < 3:
-        return True  # Zu wenig Referenzwerte → akzeptieren
-    letzte_werte = [r[0] for r in rows]
-    median = sorted(letzte_werte)[len(letzte_werte) // 2]
-    abweichung = abs(neuer_abstand - median)
-    if abweichung > schwelle:
-        print(f"[PLAUSIBILITÄT] Ausreißer verworfen: {neuer_abstand:.1f}cm "
-              f"(Median: {median:.1f}cm, Abweichung: {abweichung:.1f}cm > {schwelle}cm)")
-        return False
-    return True
-
 def messen():
     a=abstand_messen()
     if a is None: return
-    if not plausibilitaet_pruefen(a): return
     f,w=fuellstand(a); db_speichern(round(a,1),f,w)
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {f}% | {w}cm | {a:.1f}cm")
 
@@ -348,7 +421,7 @@ footer{margin-top:40px;text-align:center;font-size:.75rem;color:var(--mu);font-f
   border-radius:0 2px 2px 0;box-shadow:0 1px 3px rgba(0,0,0,.25);z-index:7;
 }
 .pump{
-  position:absolute;z-index:8;width:52px;height:22px;border-radius:11px;
+  position:absolute;z-index:8;width:22px;height:22px;border-radius:50%;
   background:linear-gradient(135deg,#6a7a8a,#4a5a6a);border:2px solid #8a9aaa;
   box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;
   font-size:.55rem;color:rgba(255,255,255,.7);font-weight:700;font-family:'DM Mono',monospace;
@@ -498,7 +571,7 @@ HTML_INDEX = """<!DOCTYPE html>
 
       <!-- Entnahme / Pumpe -->
       <div class="pipe-extraction" id="pipe-extraction"></div>
-      <div class="pump" id="pump">Pumpe</div>
+      <div class="pump" id="pump">P</div>
       <div class="pipe-label" id="lbl-extraction" style="right:2%">
         <span class="pipe-dot" style="background:#10b981"></span>Entnahme
       </div>
@@ -922,15 +995,15 @@ let liveMsgTimer = null;
 
 async function liveMessen(){
   try{
-    const d=await fetch('/api/sensor').then(r=>r.json());
+    const d=await fetch('/api/messen',{method:'POST'}).then(r=>r.json());
     if(d&&d.abstand){
       document.getElementById('la').innerHTML=`${d.abstand}<span style="font-size:1rem;color:var(--mu)"> cm</span>`;
       document.getElementById('lf').innerHTML=`${d.fuellstand}<span style="font-size:1rem;color:var(--mu)"> %</span>`;
       document.getElementById('lw').innerHTML=`${d.wasser_cm}<span style="font-size:1rem;color:var(--mu)"> cm</span>`;
       // Countdown-Text aktualisieren
-      let sek = 5;
+      let sek = 3;
       clearInterval(liveMsgTimer);
-      document.getElementById('live-status-txt').textContent = 'Nächste Messung in 5s...';
+      document.getElementById('live-status-txt').textContent = 'Nächste Messung in 3s...';
       liveMsgTimer = setInterval(()=>{
         sek--;
         if(sek > 0){
@@ -941,6 +1014,8 @@ async function liveMessen(){
       }, 1000);
     }
   }catch(e){}
+  // Nächste Messung erst nach Antwort starten (nicht parallel)
+  if(liveAktiv) liveTimer = setTimeout(liveMessen, 3000);
 }
 
 function toggleLive(){
@@ -958,14 +1033,13 @@ function toggleLive(){
     btn.style.borderColor = 'rgba(239,68,68,.3)';
     dot.style.background = 'var(--rd)';
     dot.style.animation = 'lpulse 1s ease-in-out infinite';
-    statusTxt.textContent = 'Live-Modus aktiv – misst alle 5 Sekunden';
+    statusTxt.textContent = 'Live-Modus aktiv – misst alle ~5 Sekunden';
     statusTxt.style.color = 'var(--gn)';
-    liveMessen(); // Sofort erste Messung
-    liveTimer = setInterval(liveMessen, 5000);
+    liveMessen(); // Sofort erste Messung + startet automatisch weiter
   } else {
     // Ausschalten
     liveAktiv = false;
-    clearInterval(liveTimer);
+    clearTimeout(liveTimer);
     clearInterval(liveMsgTimer);
     liveTimer = null;
     txt.textContent = 'Live starten';
@@ -1008,11 +1082,11 @@ HTML_EIN = """<!DOCTYPE html>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
 </div></div>
-<div class="sg"><div class="sgl">Hardware / Sensor</div><div class="sc">
-  <div class="sr"><div class="si"><div class="sl">Serieller Port</div><div class="sd">SR04M-2 UART</div></div>
+<div class="sg"><div class="sgl">Hardware / UART</div><div class="sc">
+  <div class="sr"><div class="si"><div class="sl">Serieller Port</div><div class="sd">SR04M-2 UART Sensor (Standard: /dev/serial0)</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
       <input type="hidden" name="feld" value="serial_port">
-      <div class="si2"><input type="text" name="wert" value="{{ cfg.serial_port }}" style="width:160px"></div>
+      <div class="si2"><input type="text" name="wert" value="{{ cfg.serial_port }}" style="width:180px;text-align:left"></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
 </div></div>
@@ -1566,14 +1640,12 @@ def index():
 @app.route('/api/aktuell')
 def api_aktuell(): return jsonify(db_letzte())
 
-@app.route('/api/sensor')
-def api_sensor():
-    """Direkte Sensor-Messung ohne DB-Speicherung (für Live-Kalibrierung)."""
-    a = abstand_messen()
-    if a is None:
-        return jsonify({"fehler": "Sensor nicht erreichbar"})
-    f, w = fuellstand(round(a, 1))
-    return jsonify({"abstand": round(a, 1), "fuellstand": f, "wasser_cm": w})
+@app.route('/api/messen', methods=['POST'])
+def api_messen():
+    """Live-Messung: triggert sofortige Sensormessung und gibt Ergebnis zurück"""
+    messen()
+    d = db_letzte()
+    return jsonify(d if d else {'fehler': 'Messung fehlgeschlagen'})
 
 @app.route('/api/range')
 def api_range():
@@ -1611,7 +1683,12 @@ def kal_setze_leer():
 
 @app.route('/kalibrierung/testmessung', methods=['POST'])
 def kal_test():
-    messen(); return redirect('/kalibrierung?ok=Testmessung+durchgeführt')
+    a = abstand_messen()
+    if a is None:
+        return redirect('/kalibrierung?err=Sensor+nicht+erreichbar+–+Verkabelung+prüfen')
+    f, w = fuellstand(a)
+    db_speichern(round(a, 1), f, w)
+    return redirect(f'/kalibrierung?ok=Messung:+{round(a,1)}+cm+({f}%+voll)')
 
 @app.route('/api/wifi')
 def api_wifi():
@@ -1827,9 +1904,6 @@ def einstellungen():
 def ein_speichern():
     feld=request.form.get('feld'); wert=request.form.get('wert','').strip()
     num={'intervall_sek':(10,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(100,500000),'dachflaeche_m2':(10,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
-    if feld=='serial_port':
-        if not wert: return redirect('/einstellungen?err=Port+darf+nicht+leer+sein')
-        CFG['serial_port']=wert[:40]; cfg_speichern(CFG); return redirect('/einstellungen?ok=Gespeichert')
     if feld in ('abfluss_koeff',):
         try:
             v=float(wert)
@@ -1840,6 +1914,9 @@ def ein_speichern():
     if feld=='name':
         if not wert: return redirect('/einstellungen?err=Name+darf+nicht+leer+sein')
         CFG['name']=wert[:40]; cfg_speichern(CFG); return redirect('/einstellungen?ok=Gespeichert')
+    if feld=='serial_port':
+        if not wert.startswith('/dev/'): return redirect('/einstellungen?err=Port+muss+mit+/dev/+beginnen')
+        CFG['serial_port']=wert; cfg_speichern(CFG); return redirect('/einstellungen?ok=Gespeichert')
     if feld in num:
         try:
             v=float(wert); lo,hi=num[feld]
@@ -1885,5 +1962,5 @@ if __name__ == '__main__':
     try:
         app.run(host='0.0.0.0',port=80,use_reloader=False)
     finally:
-        if _ser: _ser.close()
+        if SERIAL_OK and _ser: _ser.close()
         scheduler.shutdown()

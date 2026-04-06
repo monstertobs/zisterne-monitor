@@ -4,7 +4,7 @@
 
 Ein vollständiges DIY-Projekt zur Überwachung des Füllstands einer Regenwasserzisterne – mit automatischer Installation, elegantem Web-Dashboard, 3D-gedrucktem Gehäuse und Wettervorhersage für den erwarteten Regenwasserzulauf.
 
-![Version](https://img.shields.io/badge/Version-0.6.0-blue)
+![Version](https://img.shields.io/badge/Version-0.7.0-blue)
 ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20Zero%202W-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Language](https://img.shields.io/badge/Python-3.x-yellow)
@@ -26,8 +26,8 @@ Die Idee war ein **vollautomatisches, selbst gehostetes Überwachungssystem** da
 ## ✨ Features
 
 ### Dashboard
-- 🏺 **3D Glas-Zylinder** – animierte Wasserdarstellung mit Blasen und Wellen
-- 💧 **Liter-Anzeige** – aktueller Inhalt, Kapazität, Zu-/Abfluss
+- 🏺 **3D Erdquerschnitt** – animierte Zisterne mit Wasserstand, Blasen und Wellen
+- 💧 **Liter-Anzeige** – aktueller Inhalt, Kapazität, Zu-/Abfluss seit letzter Messung
 - 🔮 **Verbrauchsprognose** – wie viele Tage reicht der Vorrat noch?
 - 🌧️ **Regenvorhersage** – 7-Tage-Vorhersage mit erwartetem Zulauf in Litern
 - 📅 **Wochenverbrauch** – Durchschnitt pro Wochentag
@@ -42,7 +42,7 @@ Die Idee war ein **vollautomatisches, selbst gehostetes Überwachungssystem** da
 ### Hardware
 - 🖨️ **3D-Druck Gehäuse** – für Pi Zero 2WH, druckfertige SCAD-Dateien
 - 🔧 **Sensor-Halterung** – für DN25-Rohr oder Wandmontage mit Langlöchern
-- 📏 **Präzise Messung** – SR04M-2 Ultraschallsensor (wasserdicht, UART)
+- 📏 **UART-Sensor** – SR04M-2 Ultraschallsensor (wasserdicht, robuste UART-Kommunikation)
 
 ---
 
@@ -51,63 +51,64 @@ Die Idee war ein **vollautomatisches, selbst gehostetes Überwachungssystem** da
 | Bauteil | Beschreibung | Preis ca. |
 |---|---|---|
 | Raspberry Pi Zero 2 WH | Mit vorgelötetem GPIO-Header | ~18 € |
-| SR04M-2 | Wasserdichter Ultraschallsensor (UART) | ~5 € |
+| SR04M-2 | Wasserdichter Ultraschallsensor mit UART | ~8 € |
 | MicroSD 32GB | SanDisk Extreme A1 | ~9 € |
 | Micro-USB Netzteil 5V/2A | Für den Pi | ~8 € |
-| 1 kΩ Widerstand | Spannungsteiler Modul-TX → Pi-RX | < 1 € |
-| 2 kΩ Widerstand | Spannungsteiler Modul-TX → Pi-RX | < 1 € |
-| JY(ST)Y 2x2x0,8mm (EIB/KNX) | Für Sensor-Verbindung (bis 10m) | ~8 € |
-| **Gesamt** | | **~50 €** |
+| 1 kΩ Widerstand | Spannungsteiler Sensor-TX → Pi-RX | < 1 € |
+| 2 kΩ Widerstand | Spannungsteiler Sensor-TX → Pi-RX | < 1 € |
+| JY(ST)Y 2×2×0,8 mm | KNX/EIB Kabel für Sensor (bis 10 m) | ~10 € |
+| **Gesamt** | | **~55 €** |
 
 ---
 
 ## 🔌 Verkabelung
 
+Der SR04M-2 kommuniziert über **UART** (seriell) – kein GPIO-Triggern nötig, der Sensor sendet automatisch alle ~100 ms einen Abstandswert.
+
 ```
-SR04M-2 (UART)       Spannungsteiler        Pi Zero 2 WH
-──────────────        ───────────────        ────────────
-5V    ─────────────────────────────────────── Pin 2  (5V)
-GND   ─────────────────────────────────────── Pin 6  (GND)
-RX    ──────────────────────────────────────── Pin 8  (GPIO 14 / UART TX)
-TX    ── 1kΩ ── Punkt A ── 2kΩ ── GND (Pin 9)
-                    │
-                    └──────────────────────── Pin 10 (GPIO 15 / UART RX)
+SR04M-2 Sensor              Spannungsteiler        Pi Zero 2 WH
+──────────────              ───────────────        ────────────
+VCC  ──────────────────────────────────────────── Pin 2  (5V)
+GND  ──────────────────────────────────────────── Pin 6  (GND)
+TX   ──── 1 kΩ ──── Punkt A ──── 2 kΩ ──── GND (Pin 9)
+                        │
+                        └──────────────────────── Pin 10 (GPIO 15 / RXD)
+RX   ── (nicht angeschlossen – Auto-Output-Modus)
 ```
 
-> ⚠️ **Wichtig:** Das Modul arbeitet mit 5V – der Pi verträgt nur 3,3V!
-> Der Spannungsteiler auf der **TX-Leitung des Moduls** (→ Pi RX) ist **Pflicht**.
-> Die TX-Leitung des Pi (3,3V → Modul RX) kann direkt verbunden werden.
+> ⚠️ **Wichtig:** Der Sensor-TX liefert 5 V – der Pi verträgt nur 3,3 V!
+> Der Spannungsteiler (1 kΩ / 2 kΩ) ist **Pflicht** und schützt den UART-Eingang.
 
-**Kabelempfehlung:** JY(ST)Y 2x2x0,8mm (EIB/KNX) – bis 10m, Folienschirm.
-Schirm-Drainagedraht **nur Pi-seitig** an GND anschließen (kein Erdschleifenrisiko).
+**Kabelempfehlung:** JY(ST)Y 2×2×0,8 mm (KNX/EIB-Kabel) – bis 10 m problemlos nutzbar.
 
 ---
 
-## 🚀 Installation
+## 🚀 Installation (vollständig headless)
 
 ### Schritt 1 – SD-Karte vorbereiten
 
 1. **Raspberry Pi Imager** herunterladen: [raspberrypi.com/software](https://www.raspberrypi.com/software/)
 2. Flashen mit:
    - **Gerät:** Raspberry Pi Zero 2W
-   - **OS:** Raspberry Pi OS Lite (64-bit)
-   - **Einstellungen:** Hostname `zisterne`, SSH aktivieren, Benutzer `pi`
-3. Nach dem Flashen die SD-Karte **neu einstecken** → `bootfs` erscheint
+   - **OS:** Raspberry Pi OS Lite (64-bit, Bookworm)
+   - **Einstellungen (Zahnrad ⚙️):** Hostname `zisterne`, SSH aktivieren, Benutzer `pi`, Passwort setzen
+3. Nach dem Flashen SD-Karte **neu einstecken** → `bootfs` erscheint im Finder/Explorer
 4. Folgende Dateien in das **Root-Verzeichnis** von `bootfs` kopieren:
    - `Software/firstboot.sh`
    - `Software/app.py`
-5. `bootfs/cmdline.txt` mit **TextEdit** öffnen (Format → Als reinen Text!)  
-   Ans Ende der **einzigen Zeile** anhängen *(Leerzeichen davor!)*:
+5. `bootfs/cmdline.txt` mit einem **Texteditor** öffnen (auf dem Mac: TextEdit → Format → Als reinen Text!)
+   Ans Ende der **einzigen Zeile** anhängen *(mit Leerzeichen davor!)*:
    ```
-   systemd.run=/boot/firmware/firstboot.sh
+    systemd.run=/boot/firmware/firstboot.sh
    ```
+   > ⚠️ Keine neue Zeile anfangen – alles muss in **einer einzigen Zeile** bleiben!
 
-### Schritt 2 – Ersten Start abwarten
+### Schritt 2 – Pi starten und WLAN einrichten
 
 1. SD-Karte in den Pi einlegen, Strom anschließen
-2. Nach ~30s erscheint der Hotspot **`Zisterne-Setup`** (Passwort: `zisterne123`)
-3. Mit dem iPhone verbinden → Portal öffnet sich automatisch
-4. WLAN-Name + Passwort eingeben → Pi verbindet sich
+2. Nach ~30 Sekunden erscheint der Hotspot **`Zisterne-Setup`** (Passwort: `zisterne123`)
+3. Mit dem Smartphone verbinden → das Portal öffnet sich automatisch
+4. WLAN-Name und Passwort des Heimnetzes eingeben → Pi verbindet sich
 5. Nach ~5 Minuten ist alles fertig
 
 ### Schritt 3 – Dashboard aufrufen
@@ -117,6 +118,8 @@ http://zisterne.local
 ```
 oder direkt über die IP-Adresse aus dem Router.
 
+> **Tipp:** Beim ersten Start gleich die **Kalibrierung** aufrufen (Tab oben) und die tatsächliche Zisternentiefe einstellen.
+
 ---
 
 ## ⚙️ Konfiguration
@@ -125,11 +128,13 @@ Nach der Installation im Browser unter **Einstellungen** konfigurieren:
 
 | Einstellung | Beschreibung | Standard |
 |---|---|---|
-| Name | Anzeigename | Zisterne Garten |
+| Name | Anzeigename im Dashboard | Zisterne Garten |
 | Kapazität | Maximaler Inhalt in Litern | 5.000 L |
 | Tiefe | Zisternentiefe in cm | 240 cm |
+| Min-Abstand | Toter Bereich über dem Boden | 25 cm |
 | Messintervall | Sekunden zwischen Messungen | 60 s |
 | Dachfläche | Fläche für Regenvorhersage | 100 m² |
+| Abflusskoeffizient | Anteil Regenwasser der ankommt | 0,8 |
 | Standort GPS | Für Wettervorhersage | 50.11°N, 8.68°O |
 
 ---
@@ -146,9 +151,9 @@ Alle SCAD-Dateien sind in `3D_Druck/SCAD/` zu finden und direkt in **OpenSCAD** 
 | `4_Sensor_Wandhalterung.scad` | Halterung für Betonwand (Langlöcher) |
 
 **Druckeinstellungen:**
-- Schichthöhe: 0.2 mm
+- Schichthöhe: 0,2 mm
 - Wandlinien: 4
-- Infill: 20-40%
+- Infill: 20–40 %
 - Material: PLA (Gehäuse) oder PETG (Sensorhalterung, feuchtigkeitsbeständig)
 
 ---
@@ -159,12 +164,13 @@ Das Dashboard läuft als Flask-Server und stellt folgende API bereit:
 
 | Endpoint | Beschreibung |
 |---|---|
-| `GET /api/aktuell` | Aktuelle Messung |
+| `GET /api/aktuell` | Aktuelle Messung (Abstand, Füllstand, Uhrzeit) |
 | `GET /api/range?h=24` | Verlauf (h=Stunden, d=Tage, m=Monate) |
-| `GET /api/liter` | Aktuelle Liter + Zu-/Abfluss |
-| `GET /api/prognose` | Verbrauchsprognose |
+| `GET /api/liter` | Aktueller Inhalt in Litern + Zu-/Abfluss |
+| `GET /api/liter/verlauf` | Stündliche Liter-Werte heute |
+| `GET /api/prognose` | Verbrauchsprognose in Tagen |
 | `GET /api/regen` | Erkannte Regenereignisse |
-| `GET /api/woche` | Wochenverbrauch |
+| `GET /api/woche` | Ø Verbrauch pro Wochentag |
 | `GET /api/wetter` | 7-Tage Regenvorhersage (Open-Meteo) |
 | `GET /api/wifi` | WLAN-Status + Signalstärke |
 | `GET /api/version` | Versionsinformation |
@@ -177,15 +183,15 @@ Das Dashboard läuft als Flask-Server und stellt folgende API bereit:
 Raspberry Pi Zero 2W
 ├── Raspberry Pi OS Lite 64-bit (Bookworm)
 ├── Python 3
-│   ├── Flask          – Web-Dashboard
-│   ├── APScheduler    – Automatische Messungen
-│   ├── pyserial       – UART-Sensor-Kommunikation (SR04M-2)
-│   └── SQLite         – Messdaten-Datenbank
-├── NetworkManager     – WLAN-Verwaltung
+│   ├── Flask          – Web-Dashboard (Port 80)
+│   ├── APScheduler    – Automatische Messungen (alle 60 s)
+│   ├── pyserial       – UART-Kommunikation mit SR04M-2
+│   └── SQLite         – Messdaten-Datenbank (daten.db)
+├── NetworkManager     – WLAN-Verwaltung + Captive Portal
 └── avahi-daemon       – zisterne.local mDNS
 ```
 
-**Frontend:** Reines HTML/CSS/JavaScript – keine Frameworks, keine npm, läuft im Browser.
+**Frontend:** Reines HTML/CSS/JavaScript – keine Frameworks, keine npm, läuft direkt im Browser.
 
 **Wetterdaten:** [Open-Meteo](https://open-meteo.com/) – kostenlos, kein API-Key, DSGVO-konform.
 
@@ -196,10 +202,10 @@ Raspberry Pi Zero 2W
 ```
 zisterne-monitor/
 ├── Software/
-│   ├── app.py              # Flask-Webserver + Dashboard
-│   └── firstboot.sh        # Automatisches Erststart-Skript
+│   ├── app.py              # Flask-Webserver + Dashboard (alle Templates inline)
+│   └── firstboot.sh        # Automatisches Erststart-Skript (headless Setup)
 ├── 3D_Druck/
-│   └── SCAD/               # OpenSCAD Quelldateien
+│   └── SCAD/               # OpenSCAD Quelldateien für Gehäuse + Halterungen
 ├── docs/                   # Dokumentation
 ├── VERSION                 # Changelog
 ├── .gitignore
@@ -211,11 +217,11 @@ zisterne-monitor/
 ## 🔄 Updates einspielen
 
 ```bash
-# Vom Mac auf den Pi kopieren
+# Vom Mac auf den Pi kopieren (Pi muss im Heimnetz sein):
 scp Software/app.py pi@zisterne.local:/home/pi/zisterne/app.py
 
-# Dienst neu starten
-ssh pi@zisterne.local "sudo systemctl restart zisterne"
+# Dienst neu starten:
+ssh pi@zisterne.local "sudo systemctl restart zisterne.service"
 ```
 
 ---
@@ -226,13 +232,12 @@ Siehe [VERSION](VERSION) für den vollständigen Changelog.
 
 | Version | Highlights |
 |---|---|
-| v0.6.0 | SR04M-2 UART-Sensor, headless UART-Setup, bis 10m Kabel |
-| v0.5.0 | Regenvorhersage, 3D Glas-Tank, WLAN-Verwaltung |
-| v0.4.x | Captive Portal WLAN, WLAN-Signalstärke |
+| v0.7.0 | UART Auto-Output-Modus, robuste Port-Verwaltung, vollständige Doku-Überarbeitung |
+| v0.6.x | SR04M-2 UART Sensor, pyserial statt RPi.GPIO, Captive Portal Fixes |
+| v0.5.0 | Regenvorhersage, 3D Erdquerschnitt-Visualisierung, WLAN-Verwaltung |
 | v0.3.x | Verbrauchsprognose, Regenerkennung, Wochenverbrauch |
 | v0.2.0 | Liter-Anzeige, Kapazitäts-Einstellung |
-| v0.1.x | Bugfixes, Hotspot-Fixes, Zeitzone, Erststart |
-| v0.1.0 | Initiale Version |
+| v0.1.0 | Initiale Version: Dashboard, Dark Mode, SQLite |
 
 ---
 
@@ -256,11 +261,16 @@ MIT License – siehe [LICENSE](LICENSE)
 
 ## 👤 Autor
 
-**Tobias Meier**  
-📧 admin(at)secutobs.com  
-🌐 [github.com/secutobs](https://github.com/secutobs)
+**Tobias Meier**
+📧 admin(at)secutobs.com
+🌐 [github.com/monstertobs](https://github.com/monstertobs)
 
-## ☕ Support If you find this project useful and want to say thanks, feel free to send a small donation in Bitcoin: **BTC:** 1ADFsY95oPRvVQ36yWcud8zM4qzZZDqf6F No pressure – a GitHub ⭐ star is also very much appreciated!
+## ☕ Support
+
+If you find this project useful and want to say thanks, feel free to send a small donation in Bitcoin:
+**BTC:** 1ADFsY95oPRvVQ36yWcud8zM4qzZZDqf6F
+No pressure – a GitHub ⭐ star is also very much appreciated!
+
 ---
 
-*Entwickelt mit ❤️ für alle die ihre Zisterne im Blick behalten wollen.*
+*Entwickelt mit ❤️ für alle, die ihre Zisterne im Blick behalten wollen.*

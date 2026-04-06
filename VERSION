@@ -1,26 +1,36 @@
 Zisterne Monitor
 ================
-Version:    0.6.0
-Datum:      2026-04-01
+Version:    0.7.0
+Datum:      2026-04-06
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
 Plattform:  Raspberry Pi Zero 2W + SR04M-2 (UART)
 
 Changelog
 ---------
-0.6.0  (2026-04-01)
-  - NEU: SR04M-2 UART Ultraschallsensor (ersetzt JSN-SR04T GPIO)
-  - Sensoranbindung vollständig auf seriell (9600 Baud, /dev/serial0)
-  - Kein RPi.GPIO mehr – pyserial als neue Abhängigkeit
-  - firstboot.sh: UART automatisch headless aktiviert (enable_uart=1, Serial-Konsole deaktiviert)
-  - Einstellung trig_pin/echo_pin entfernt – serial_port hinzugefügt
-  - Bis 10m Leitungslänge mit JY(ST)Y 2x2x0,8mm EIB-Kabel getestet
-  - Settings-Seite: GPIO-Felder durch Serial Port Eingabe ersetzt
+0.7.0  (2026-04-06)
+  - NEU: UART Auto-Output-Modus statt Trigger-Modus (kein \x01 mehr)
+  - NEU: _parse_uart_frame() mit Checksum-Verifizierung (FF H L SUM)
+  - NEU: _open_serial() / _close_serial() / _reopen_serial() für robuste Port-Verwaltung
+  - NEU: 0.6s Rolling-Window statt 5 Einzelmessungen
+  - NEU: Automatischer Port-Reopen bei UART-Fehler
+  - FIX: 6000 mm = außer Reichweite wird explizit gefiltert
+  - FIX: Plausibilitätsbereich auf 50–6000 mm angepasst
+  - FIX: serial-Timeout auf 0.35s für 9600 Baud optimiert
+  - FIX: firstboot.sh config.json enthält jetzt alle Felder (kapazitaet_l, dachflaeche_m2, standort_lat/lon, abfluss_koeff)
+  - FIX: firstboot.sh VERSION-Datei auf 0.7.0 aktualisiert
+  - DOC: README.md vollständig überarbeitet – UART-Verkabelung, SR04M-2, korrekter Stack
+  - DOC: CLAUDE.md Hardware-Sektion auf SR04M-2/UART aktualisiert
 
-0.3.1  (2026-03-31)
-  - NEU: Plausibilitäts-Check für Messwerte (Ausreißer-Filterung)
-  - Neue Einstellung: plausibilitaets_schwelle_cm (Standard: 10 cm)
-  - Messungen die mehr als den Schwellwert vom Median der letzten 5 Werte abweichen werden verworfen
+0.6.0  (2026-04-02)
+  - NEU: SR04M-2 UART Sensor (ersetzt JSN-SR04T GPIO)
+  - NEU: pyserial statt RPi.GPIO
+  - NEU: UART-Aktivierung in firstboot.sh (enable_uart, disable-bt)
+  - NEU: Serial Console Entfernung aus cmdline.txt
+  - NEU: serial-getty@ttyAMA0 deaktiviert
+  - NEU: NTP-Sync-Warteloop vor apt-get
+  - FIX: config.json nutzt serial_port statt trig_pin/echo_pin
+  - FIX: 0xFF Sync-Suche im UART-Protokoll
 
 0.3.0  (2026-03-22)
   - NEU: Verbrauchsprognose (Tage Vorrat, Ø Verbrauch/Tag)

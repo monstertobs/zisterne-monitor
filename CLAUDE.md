@@ -20,7 +20,7 @@ Templates werden via `render_template_string()` gerendert. Es gibt keine separat
 - `daten.db` – SQLite, Tabelle `messungen (id, zeitpunkt, abstand, fuellstand, wasser_cm)`
 - `config.json` – persistente Konfiguration, liegt neben `app.py` in `/home/pi/zisterne/`
 
-**GPIO:** Beim Import-Fehler (Entwicklung auf Mac) setzt das Script `GPIO_OK = False` und Messungen geben `None` zurück – die App startet trotzdem vollständig für UI-Entwicklung.
+**UART/Serial:** Beim Import-Fehler von `serial` (Entwicklung auf Mac) setzt das Script `_serial = None` und `SERIAL_OK = False` – Messungen geben `None` zurück, die App startet trotzdem vollständig für UI-Entwicklung.
 
 ## Versionierung
 
@@ -28,6 +28,7 @@ Bei jeder Änderung PATCH-Version hochzählen und Datum aktualisieren. Versionss
 1. `app.py` – Docstring (Zeile ~7) und `__version__` / `__version_date__` (Zeile ~15–16)
 2. `VERSION` – Changelog-Datei mit Beschreibung der Änderung
 3. `README.md` – Badge-Zeile (`![Version](https://img.shields.io/badge/Version-X.Y.Z-blue)`)
+4. `Software/firstboot.sh` – Header-Kommentar (Zeile 3 und 43)
 
 ## Deployment auf den Pi
 
@@ -57,10 +58,12 @@ Der Pi ist auch über `pi@zisterne.local` erreichbar. Die App läuft auf Port 80
 
 ## Hardware-Konfiguration
 
-- **Sensor:** JSN-SR04T Ultraschall (wasserdicht)
-- **TRIG:** GPIO 23 (Pin 16), **ECHO:** GPIO 24 (Pin 18) – mit Spannungsteiler (1kΩ/2kΩ)
-- Messung: 5 Messungen, Median (sortiert, Index 2)
+- **Sensor:** SR04M-2 Ultraschall (wasserdicht, UART-Interface)
+- **UART:** `/dev/serial0` (GPIO 15 / Pin 10 = RXD), 9600 Baud, Auto-Output-Modus
+- **Spannungsteiler:** Sensor-TX (5V) → 1kΩ → Pi-RX, 2kΩ nach GND (Pflicht!)
+- Messung: 0,6s Rolling-Window, `_parse_uart_frame()` mit Checksum (FF H L SUM), Median
 - Füllstand-Formel: `(tiefe_cm - abstand_cm - min_cm) / (tiefe_cm - min_cm) * 100`
+- Port-Management: `_open_serial()` / `_close_serial()` / `_reopen_serial()` – automatischer Reopen bei Fehler
 
 ## Dashboard-Visualisierung
 
