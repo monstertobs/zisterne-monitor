@@ -4,7 +4,7 @@
 ║              ZISTERNE MONITOR                            ║
 ║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.7.5                                         ║
+║  Version:  0.7.6                                         ║
 ║  Datum:    2026-04-11                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
@@ -12,7 +12,7 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.5"
+__version__     = "0.7.6"
 __version_date__ = "2026-04-11"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
@@ -1369,7 +1369,7 @@ setInterval(loadWifi,30000);
   <div class="sr"><div class="si"><div class="sl">Dachfläche</div><div class="sd">Wirksame Fläche fürs Regenwasser (Draufsicht)</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
       <input type="hidden" name="feld" value="dachflaeche_m2">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.dachflaeche_m2 }}" min="10" max="10000" step="5"><span class="ul">m²</span></div>
+      <div class="si2"><input type="number" name="wert" value="{{ cfg.dachflaeche_m2 }}" min="1" max="10000" step="1"><span class="ul">m²</span></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
   <div class="sr"><div class="si"><div class="sl">Abflusskoeffizient</div><div class="sd">Wirkungsgrad (Ziegel=0.8, Flachdach=0.9, begrünt=0.3)</div></div>
@@ -2164,7 +2164,7 @@ def einstellungen():
 @app.route('/einstellungen/speichern', methods=['POST'])
 def ein_speichern():
     feld=request.form.get('feld'); wert=request.form.get('wert','').strip()
-    num={'intervall_sek':(1,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(1,500000),'dachflaeche_m2':(10,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
+    num={'intervall_sek':(1,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(1,500000),'dachflaeche_m2':(1,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
     if feld in ('abfluss_koeff',):
         try:
             v=float(wert)
