@@ -12,8 +12,8 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.1"
-__version_date__ = "2026-04-08"
+__version__     = "0.7.2"
+__version_date__ = "2026-04-11"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
 __project__     = "Zisterne Monitor"

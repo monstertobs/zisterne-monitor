@@ -1,13 +1,16 @@
 Zisterne Monitor
 ================
-Version:    0.7.1
-Datum:      2026-04-08
+Version:    0.7.2
+Datum:      2026-04-11
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
 Plattform:  Raspberry Pi Zero 2W + SR04M-2 (UART)
 
 Changelog
 ---------
+0.7.2  (2026-04-11)
+  - FIX: firstboot.sh – Temporärer 512 MB Swap vor pip install (verhindert OOM-Crash auf Pi Zero)
+
 0.7.1  (2026-04-08)
   - NEU: Auto-Update direkt aus der Einstellungsseite (GitHub → Pi)
   - NEU: Backup vor Update (app.py.bak), automatischer Rollback bei Fehler
