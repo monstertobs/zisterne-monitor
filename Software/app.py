@@ -4,7 +4,7 @@
 ║              ZISTERNE MONITOR                            ║
 ║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.7.3                                         ║
+║  Version:  0.7.4                                         ║
 ║  Datum:    2026-04-11                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
@@ -12,7 +12,7 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.3"
+__version__     = "0.7.4"
 __version_date__ = "2026-04-11"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
@@ -1169,13 +1169,13 @@ HTML_EIN = """<!DOCTYPE html>
   <div class="sr"><div class="si"><div class="sl">Kapazität Zisterne</div><div class="sd">Maximaler Inhalt in Litern – für Liter-Berechnung</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
       <input type="hidden" name="feld" value="kapazitaet_l">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.kapazitaet_l }}" min="100" max="500000" step="100"><span class="ul">L</span></div>
+      <div class="si2"><input type="number" name="wert" value="{{ cfg.kapazitaet_l }}" min="1" max="500000" step="1"><span class="ul">L</span></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
-  <div class="sr"><div class="si"><div class="sl">Messintervall</div><div class="sd">Sekunden (10–3600)</div></div>
+  <div class="sr"><div class="si"><div class="sl">Messintervall</div><div class="sd">Sekunden (1–3600)</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
       <input type="hidden" name="feld" value="intervall_sek">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.intervall_sek }}" min="10" max="3600" step="10"><span class="ul">sek</span></div>
+      <div class="si2"><input type="number" name="wert" value="{{ cfg.intervall_sek }}" min="1" max="3600" step="1"><span class="ul">sek</span></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
 </div></div>
@@ -2164,7 +2164,7 @@ def einstellungen():
 @app.route('/einstellungen/speichern', methods=['POST'])
 def ein_speichern():
     feld=request.form.get('feld'); wert=request.form.get('wert','').strip()
-    num={'intervall_sek':(10,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(100,500000),'dachflaeche_m2':(10,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
+    num={'intervall_sek':(1,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(1,500000),'dachflaeche_m2':(10,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
     if feld in ('abfluss_koeff',):
         try:
             v=float(wert)

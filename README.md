@@ -4,7 +4,7 @@
 
 Ein vollständiges DIY-Projekt zur Überwachung des Füllstands einer Regenwasserzisterne – mit automatischer Installation, elegantem Web-Dashboard, 3D-gedrucktem Gehäuse und Wettervorhersage für den erwarteten Regenwasserzulauf.
 
-![Version](https://img.shields.io/badge/Version-0.7.3-blue)
+![Version](https://img.shields.io/badge/Version-0.7.4-blue)
 ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20Zero%202W-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Language](https://img.shields.io/badge/Python-3.x-yellow)
