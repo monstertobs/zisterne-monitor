@@ -1,6 +1,6 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║   ZISTERNE MONITOR – First Boot Setup v0.7.2                   ║
+# ║   ZISTERNE MONITOR – First Boot Setup v0.7.3                   ║
 # ║   Tobias Meier · admin@secutobs.com                            ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
@@ -40,7 +40,7 @@ exec > >(tee -a "$LOG") 2>&1
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║   ZISTERNE MONITOR – FIRST BOOT v0.7.2      ║"
+echo "║   ZISTERNE MONITOR – FIRST BOOT v0.7.3      ║"
 echo "║   $(date '+%Y-%m-%d %H:%M:%S')              ║"
 echo "╚══════════════════════════════════════════════╝"
 echo "  Boot-Dir: $BOOT_DIR"
