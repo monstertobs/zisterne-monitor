@@ -4,7 +4,7 @@
 ║              ZISTERNE MONITOR                            ║
 ║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.7.4                                         ║
+║  Version:  0.7.5                                         ║
 ║  Datum:    2026-04-11                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
@@ -12,7 +12,7 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.4"
+__version__     = "0.7.5"
 __version_date__ = "2026-04-11"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
@@ -1508,9 +1508,9 @@ async function updPruefen() {
 
 async function updStarten() {
   if (!confirm(
-    'Update installieren?\n\n' +
-    '• Die Seite ist ca. 30 Sekunden nicht erreichbar\n' +
-    '• Bei Fehler wird automatisch ein Rollback durchgeführt\n\n' +
+    'Update installieren?\\n\\n' +
+    '• Die Seite ist ca. 30 Sekunden nicht erreichbar\\n' +
+    '• Bei Fehler wird automatisch ein Rollback durchgeführt\\n\\n' +
     'Fortfahren?')) return;
   document.getElementById('upd-install-btn').disabled = true;
   document.getElementById('upd-progress-bar').style.width = '5%';
