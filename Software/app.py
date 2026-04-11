@@ -4,15 +4,15 @@
 ║              ZISTERNE MONITOR                            ║
 ║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.7.1                                         ║
-║  Datum:    2026-04-08                                    ║
+║  Version:  0.7.3                                         ║
+║  Datum:    2026-04-11                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
 ╚══════════════════════════════════════════════════════════╝
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.2"
+__version__     = "0.7.3"
 __version_date__ = "2026-04-11"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
@@ -1965,6 +1965,11 @@ def api_wifi_connect():
             capture_output=True, text=True, timeout=35
         )
         if r.returncode == 0:
+            # autoconnect sicherstellen damit Pi nach Neustart wieder verbindet
+            _sp.run(['nmcli', 'connection', 'modify', ssid,
+                     'connection.autoconnect', 'yes',
+                     'connection.autoconnect-priority', '10'],
+                    capture_output=True, timeout=8)
             return jsonify({'ok': True, 'ssid': ssid})
         else:
             fehler = r.stderr.strip() or r.stdout.strip() or 'Verbindung fehlgeschlagen'
@@ -2114,6 +2119,11 @@ def _portal_server():
                                'password',pw,'ifname','wlan0'],
                               capture_output=True,text=True,timeout=35)
                     if r.returncode==0:
+                        # autoconnect sicherstellen damit Pi nach Neustart wieder verbindet
+                        _sp.run(['nmcli','connection','modify',ssid,
+                                 'connection.autoconnect','yes',
+                                 'connection.autoconnect-priority','10'],
+                                capture_output=True,timeout=8)
                         _sp.run(['nmcli','connection','delete','Zisterne-Hotspot'],
                                 capture_output=True,timeout=8)
                         _portal_aktiv = False
