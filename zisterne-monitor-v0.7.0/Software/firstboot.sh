@@ -1,6 +1,6 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║   ZISTERNE MONITOR – First Boot Setup v0.7.7                   ║
+# ║   ZISTERNE MONITOR – First Boot Setup v0.7.0                   ║
 # ║   Tobias Meier · admin@secutobs.com                            ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
@@ -40,7 +40,7 @@ exec > >(tee -a "$LOG") 2>&1
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║   ZISTERNE MONITOR – FIRST BOOT v0.7.7      ║"
+echo "║   ZISTERNE MONITOR – FIRST BOOT v0.7.0      ║"
 echo "║   $(date '+%Y-%m-%d %H:%M:%S')              ║"
 echo "╚══════════════════════════════════════════════╝"
 echo "  Boot-Dir: $BOOT_DIR"
@@ -517,21 +517,6 @@ if [ "$INET_OK" -eq 0 ]; then
 fi
 
 # ══════════════════════════════════════════════════════════════════
-#  SWAP – Temporärer Swap für pip install (verhindert OOM-Crash)
-# ══════════════════════════════════════════════════════════════════
-SWAP_FILE="/swapfile_firstboot"
-if [ ! -f "$SWAP_FILE" ]; then
-    echo "→ Lege temporären Swap (512 MB) an..."
-    fallocate -l 512M "$SWAP_FILE" 2>/dev/null || dd if=/dev/zero of="$SWAP_FILE" bs=1M count=512 status=none
-    chmod 600 "$SWAP_FILE"
-    mkswap "$SWAP_FILE" -q
-    swapon "$SWAP_FILE"
-    echo "✓ Swap aktiv ($(swapon --show | grep "$SWAP_FILE" | awk '{print $3}'))"
-else
-    echo "✓ Swap bereits vorhanden"
-fi
-
-# ══════════════════════════════════════════════════════════════════
 #  PHASE 2 – PAKETE INSTALLIEREN
 # ══════════════════════════════════════════════════════════════════
 echo ""
@@ -754,13 +739,6 @@ fi
 
 # Temporäre Dateien entfernen
 rm -rf /tmp/portal /tmp/wlan_verbunden /tmp/wlan_fehler 2>/dev/null || true
-
-# Swap wieder entfernen
-if [ -f "/swapfile_firstboot" ]; then
-    swapoff /swapfile_firstboot 2>/dev/null || true
-    rm -f /swapfile_firstboot
-    echo "✓ Temporärer Swap entfernt"
-fi
 
 # Fertig-Flag setzen
 touch "$DONE_FLAG"

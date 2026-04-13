@@ -4,22 +4,22 @@
 ║              ZISTERNE MONITOR                            ║
 ║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.7.7                                         ║
-║  Datum:    2026-04-13                                    ║
+║  Version:  0.6.0                                         ║
+║  Datum:    2026-04-02                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
 ╚══════════════════════════════════════════════════════════╝
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.7"
-__version_date__ = "2026-04-13"
+__version__     = "0.6.0"
+__version_date__ = "2026-04-02"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
 __project__     = "Zisterne Monitor"
 # ─────────────────────────────────────────────────────────────
 
-import time, sqlite3, os, json, shutil, subprocess, urllib.request, shlex
+import time, sqlite3, os, json
 from datetime import datetime, timedelta
 from flask import Flask, render_template_string, jsonify, request, redirect
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -58,56 +58,14 @@ cfg_speichern(CFG)
 
 _ser = None
 SERIAL_OK = False
-import threading as _threading
-_ser_lock = _threading.Lock()
 try:
     import serial as _serial
+    _ser = _serial.Serial(CFG["serial_port"], 9600, timeout=1)
+    SERIAL_OK = True
 except Exception:
-    _serial = None
-
-def _open_serial():
-    global _ser, SERIAL_OK
-    if _serial is None:
-        _ser = None
-        SERIAL_OK = False
-        return False
-    try:
-        _ser = _serial.Serial(CFG["serial_port"], 9600, timeout=0.35)
-        try:
-            _ser.reset_input_buffer()
-            _ser.reset_output_buffer()
-        except Exception:
-            pass
-        SERIAL_OK = True
-        return True
-    except Exception as e:
-        _ser = None
-        SERIAL_OK = False
-        print("⚠  Serieller Port nicht verfügbar:", e)
-        return False
-
-def _close_serial():
-    global _ser, SERIAL_OK
-    try:
-        if _ser is not None:
-            _ser.close()
-    except Exception:
-        pass
     _ser = None
     SERIAL_OK = False
-
-def _reopen_serial():
-    _close_serial()
-    time.sleep(0.1)
-    return _open_serial()
-
-_open_serial()
-
-# ── Auto-Update ───────────────────────────────────────────────────────────────
-_GITHUB_API_URL = "https://api.github.com/repos/monstertobs/zisterne-monitor/releases/latest"
-_GITHUB_RAW_URL = "https://raw.githubusercontent.com/monstertobs/zisterne-monitor/main/Software/app.py"
-_UPDATE_STATUS  = {"state": "idle", "message": "Bereit", "progress": 0, "latest": None}
-# ─────────────────────────────────────────────────────────────────────────────
+    print("⚠  Serieller Port nicht verfügbar")
 
 app = Flask(__name__)
 scheduler = BackgroundScheduler()
@@ -159,78 +117,35 @@ def db_roh(n=10):
         rows = c.execute("SELECT zeitpunkt,abstand,fuellstand,wasser_cm FROM messungen ORDER BY id DESC LIMIT ?",(n,)).fetchall()
     return [{"t":r[0],"a":r[1],"f":r[2],"w":r[3]} for r in rows]
 
-def _parse_uart_frame(buf):
-    """Parst SR04M-2 UART-Frames: FF H L SUM"""
-    while len(buf) >= 4:
-        if buf[0] != 0xFF:
-            buf.pop(0)
-            continue
-        h, l, s = buf[1], buf[2], buf[3]
-        if ((0xFF + h + l) & 0xFF) == s:
-            dist_mm = (h << 8) | l
-            del buf[:4]
-            return dist_mm
-        buf.pop(0)
-    return None
-
 def abstand_messen():
-    """
-    Liest den SR04M-2 im UART-Auto-Output-Modus aus.
-    Erwartetes Frame: FF H L SUM bei 9600 Baud.
-    6000 mm wird als "außer Reichweite / kein Echo" verworfen.
-    Gibt den Median gültiger Werte in cm zurück.
-    """
-    global _ser
-
-    if _serial is None:
-        return None
-
-    if not _ser_lock.acquire(timeout=8):
-        return None
-
-    werte = []
-    buf = bytearray()
-
-    try:
-        if _ser is None or not SERIAL_OK:
-            if not _open_serial():
-                return None
-
+    if not SERIAL_OK or _ser is None: return None
+    m = []
+    for _ in range(5):
         try:
             _ser.reset_input_buffer()
+            _ser.write(b'\x01')
+            time.sleep(0.15)
+            # Warte auf 0xFF Startbyte (max 20 Bytes durchsuchen)
+            found = False
+            for _ in range(20):
+                b = _ser.read(1)
+                if not b:
+                    break
+                if b[0] == 0xFF:
+                    rest = _ser.read(3)
+                    if len(rest) == 3:
+                        H, L, CS = rest[0], rest[1], rest[2]
+                        if CS == (0xFF + H + L) & 0xFF:
+                            dist_mm = (H << 8) | L
+                            if 20 < dist_mm < 4500:
+                                m.append(dist_mm / 10.0)
+                                found = True
+                    break
         except Exception:
             pass
-
-        start = time.time()
-
-        while time.time() - start < 0.6:
-            try:
-                data = _ser.read(32)
-                if data:
-                    buf.extend(data)
-                    while True:
-                        dist_mm = _parse_uart_frame(buf)
-                        if dist_mm is None:
-                            break
-                        if dist_mm == 6000:
-                            continue
-                        if 50 <= dist_mm <= 6000:
-                            werte.append(dist_mm / 10.0)
-            except Exception as e:
-                print(f"⚠ UART Lesefehler, öffne Port neu: {e}")
-                if not _reopen_serial():
-                    return None
-                buf = bytearray()
-
-            time.sleep(0.03)
-    finally:
-        _ser_lock.release()
-
-    if not werte:
-        return None
-
-    werte.sort()
-    return round(werte[len(werte) // 2], 1)
+        time.sleep(0.1)
+    if len(m) < 3: return None
+    return sorted(m)[len(m) // 2]
 
 def fuellstand(a):
     n=CFG["tiefe_cm"]-CFG["min_cm"]; w=CFG["tiefe_cm"]-a
@@ -241,97 +156,6 @@ def messen():
     if a is None: return
     f,w=fuellstand(a); db_speichern(round(a,1),f,w)
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {f}% | {w}cm | {a:.1f}cm")
-
-def _update_worker():
-    """Hintergrund-Thread: Backup → Download → Verify → Replace → Watcher → Restart"""
-    global _UPDATE_STATUS
-    app_path   = os.path.abspath(__file__)
-    backup_path = app_path + ".bak"
-    tmp_path    = app_path + ".new"
-
-    def _set(state, message, progress):
-        _UPDATE_STATUS["state"]    = state
-        _UPDATE_STATUS["message"]  = message
-        _UPDATE_STATUS["progress"] = progress
-
-    try:
-        # 1 ── Backup erstellen ────────────────────────────────────────────────
-        _set("running", "Erstelle Backup der aktuellen Version…", 10)
-        shutil.copy2(app_path, backup_path)
-
-        # 2 ── Neue Version laden ──────────────────────────────────────────────
-        _set("running", "Lade neue Version von GitHub…", 30)
-        req = urllib.request.Request(
-            _GITHUB_RAW_URL,
-            headers={"User-Agent": "zisterne-monitor-updater"}
-        )
-        with urllib.request.urlopen(req, timeout=20) as r:
-            new_content = r.read()
-
-        with open(tmp_path, "wb") as f:
-            f.write(new_content)
-
-        # 3 ── Verifizieren ────────────────────────────────────────────────────
-        _set("running", "Prüfe heruntergeladene Datei…", 55)
-        try:
-            text = new_content.decode("utf-8")
-        except UnicodeDecodeError:
-            raise ValueError("Datei ist kein gültiger UTF-8 Text")
-        if "Flask" not in text or "__version__" not in text:
-            raise ValueError("Ungültige Datei – Flask oder __version__ fehlt")
-        if len(text) < 50_000:
-            raise ValueError(f"Datei zu klein ({len(text)} Bytes) – vermutlich unvollständig")
-
-        # 4 ── Installieren ────────────────────────────────────────────────────
-        _set("running", "Installiere neue Version…", 75)
-        shutil.move(tmp_path, app_path)
-        os.chmod(app_path, 0o755)
-
-        # 5 ── Rollback-Watcher starten (überlebt den Service-Neustart) ────────
-        _set("running", "Starte Rollback-Watcher…", 85)
-        q_bak = shlex.quote(backup_path)
-        q_app = shlex.quote(app_path)
-        rollback_script = (
-            "#!/bin/bash\n"
-            "sleep 40\n"
-            "if ! systemctl is-active --quiet zisterne.service; then\n"
-            f'    echo "$(date): Update fehlgeschlagen – Rollback" >> /var/log/zisterne_update.log\n'
-            f"    cp -f {q_bak} {q_app}\n"
-            "    systemctl restart zisterne.service\n"
-            f'    echo "$(date): Rollback abgeschlossen" >> /var/log/zisterne_update.log\n'
-            "else\n"
-            f'    echo "$(date): Update v{__version__} erfolgreich" >> /var/log/zisterne_update.log\n'
-            "fi\n"
-        )
-        with open("/tmp/zisterne_rollback.sh", "w") as f:
-            f.write(rollback_script)
-        os.chmod("/tmp/zisterne_rollback.sh", 0o755)
-        subprocess.Popen(
-            ["bash", "/tmp/zisterne_rollback.sh"],
-            start_new_session=True,
-            stdout=open("/tmp/zisterne_rollback.log", "w"),
-            stderr=subprocess.STDOUT
-        )
-
-        # 6 ── Service neu starten ─────────────────────────────────────────────
-        _set("restarting", "Dienst wird neu gestartet…", 95)
-        time.sleep(0.8)  # Antwort noch zum Browser senden
-        subprocess.Popen(["systemctl", "restart", "zisterne.service"])
-
-    except Exception as exc:
-        # Fehler → Rollback falls Backup vorhanden
-        rb = ""
-        if os.path.exists(backup_path):
-            try:
-                shutil.copy2(backup_path, app_path)
-                rb = " · Backup wiederhergestellt"
-            except Exception as rb_exc:
-                rb = f" · Rollback fehlgeschlagen: {rb_exc}"
-        if os.path.exists(tmp_path):
-            try: os.remove(tmp_path)
-            except Exception: pass
-        _set("error", f"{exc}{rb}", 0)
-
 
 STYLES = """
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1092,15 +916,15 @@ let liveMsgTimer = null;
 
 async function liveMessen(){
   try{
-    const d=await fetch('/api/messen',{method:'POST'}).then(r=>r.json());
+    const d=await fetch('/api/aktuell').then(r=>r.json());
     if(d&&d.abstand){
       document.getElementById('la').innerHTML=`${d.abstand}<span style="font-size:1rem;color:var(--mu)"> cm</span>`;
       document.getElementById('lf').innerHTML=`${d.fuellstand}<span style="font-size:1rem;color:var(--mu)"> %</span>`;
       document.getElementById('lw').innerHTML=`${d.wasser_cm}<span style="font-size:1rem;color:var(--mu)"> cm</span>`;
       // Countdown-Text aktualisieren
-      let sek = 3;
+      let sek = 5;
       clearInterval(liveMsgTimer);
-      document.getElementById('live-status-txt').textContent = 'Nächste Messung in 3s...';
+      document.getElementById('live-status-txt').textContent = 'Nächste Messung in 5s...';
       liveMsgTimer = setInterval(()=>{
         sek--;
         if(sek > 0){
@@ -1111,8 +935,6 @@ async function liveMessen(){
       }, 1000);
     }
   }catch(e){}
-  // Nächste Messung erst nach Antwort starten (nicht parallel)
-  if(liveAktiv) liveTimer = setTimeout(liveMessen, 3000);
 }
 
 function toggleLive(){
@@ -1130,13 +952,14 @@ function toggleLive(){
     btn.style.borderColor = 'rgba(239,68,68,.3)';
     dot.style.background = 'var(--rd)';
     dot.style.animation = 'lpulse 1s ease-in-out infinite';
-    statusTxt.textContent = 'Live-Modus aktiv – misst alle ~5 Sekunden';
+    statusTxt.textContent = 'Live-Modus aktiv – misst alle 5 Sekunden';
     statusTxt.style.color = 'var(--gn)';
-    liveMessen(); // Sofort erste Messung + startet automatisch weiter
+    liveMessen(); // Sofort erste Messung
+    liveTimer = setInterval(liveMessen, 5000);
   } else {
     // Ausschalten
     liveAktiv = false;
-    clearTimeout(liveTimer);
+    clearInterval(liveTimer);
     clearInterval(liveMsgTimer);
     liveTimer = null;
     txt.textContent = 'Live starten';
@@ -1169,13 +992,13 @@ HTML_EIN = """<!DOCTYPE html>
   <div class="sr"><div class="si"><div class="sl">Kapazität Zisterne</div><div class="sd">Maximaler Inhalt in Litern – für Liter-Berechnung</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
       <input type="hidden" name="feld" value="kapazitaet_l">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.kapazitaet_l }}" min="1" max="500000" step="1"><span class="ul">L</span></div>
+      <div class="si2"><input type="number" name="wert" value="{{ cfg.kapazitaet_l }}" min="100" max="500000" step="100"><span class="ul">L</span></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
-  <div class="sr"><div class="si"><div class="sl">Messintervall</div><div class="sd">Sekunden (1–3600)</div></div>
+  <div class="sr"><div class="si"><div class="sl">Messintervall</div><div class="sd">Sekunden (10–3600)</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
       <input type="hidden" name="feld" value="intervall_sek">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.intervall_sek }}" min="1" max="3600" step="1"><span class="ul">sek</span></div>
+      <div class="si2"><input type="number" name="wert" value="{{ cfg.intervall_sek }}" min="10" max="3600" step="10"><span class="ul">sek</span></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
 </div></div>
@@ -1369,7 +1192,7 @@ setInterval(loadWifi,30000);
   <div class="sr"><div class="si"><div class="sl">Dachfläche</div><div class="sd">Wirksame Fläche fürs Regenwasser (Draufsicht)</div></div>
     <form method="POST" action="/einstellungen/speichern" style="display:flex;align-items:center;gap:8px">
       <input type="hidden" name="feld" value="dachflaeche_m2">
-      <div class="si2"><input type="number" name="wert" value="{{ cfg.dachflaeche_m2 }}" min="1" max="10000" step="1"><span class="ul">m²</span></div>
+      <div class="si2"><input type="number" name="wert" value="{{ cfg.dachflaeche_m2 }}" min="10" max="10000" step="5"><span class="ul">m²</span></div>
       <button type="submit" class="btn bb" style="padding:9px 16px;font-size:.85rem">Speichern</button>
     </form></div>
   <div class="sr"><div class="si"><div class="sl">Abflusskoeffizient</div><div class="sd">Wirkungsgrad (Ziegel=0.8, Flachdach=0.9, begrünt=0.3)</div></div>
@@ -1399,63 +1222,6 @@ setInterval(loadWifi,30000);
     <form method="POST" action="/einstellungen/reset" onsubmit="return confirm('Wirklich zurücksetzen?')">
       <button type="submit" class="btn br">Zurücksetzen</button></form></div>
 </div></div>
-<div class="sg"><div class="sgl">Software-Update</div><div class="sc">
-  <!-- Zeile 1: Aktuelle Version + Prüfen-Button -->
-  <div class="sr" id="upd-version-row">
-    <div class="si">
-      <div class="sl">Installierte Version</div>
-      <div class="sd" id="upd-status-txt">Klicke "Prüfen" um nach Updates zu suchen</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-      <span style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--mu)">v{{ version }}</span>
-      <button onclick="updPruefen()" id="upd-check-btn" class="btn bb"
-        style="padding:7px 14px;font-size:.82rem">Prüfen</button>
-    </div>
-  </div>
-  <!-- Zeile 2: Update verfügbar -->
-  <div id="upd-available-row" class="sr" style="display:none">
-    <div class="si">
-      <div class="sl" style="color:var(--gn)">&#x2B06; Update verfügbar</div>
-      <div class="sd" id="upd-new-version-txt"></div>
-    </div>
-    <button onclick="updStarten()" id="upd-install-btn" class="btn bg"
-      style="padding:9px 16px;font-size:.85rem;flex-shrink:0">Installieren</button>
-  </div>
-  <!-- Zeile 3: Fortschrittsbalken -->
-  <div id="upd-progress-row" class="sr"
-    style="display:none;flex-direction:column;align-items:stretch;gap:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <span class="sl">Update läuft…</span>
-      <span id="upd-progress-pct"
-        style="font-family:'DM Mono',monospace;font-size:.82rem;color:var(--bl)">0%</span>
-    </div>
-    <div style="height:6px;background:var(--bd);border-radius:3px;overflow:hidden">
-      <div id="upd-progress-bar"
-        style="height:100%;width:0%;background:linear-gradient(90deg,var(--bl),var(--tl));
-               border-radius:3px;transition:width .5s ease"></div>
-    </div>
-    <div id="upd-progress-msg" style="font-size:.8rem;color:var(--mu)">…</div>
-  </div>
-  <!-- Zeile 4: Neustart läuft -->
-  <div id="upd-restart-row" class="sr" style="display:none">
-    <div class="si">
-      <div class="sl">Neustart läuft…</div>
-      <div class="sd">Seite lädt automatisch neu sobald der Dienst wieder erreichbar ist</div>
-    </div>
-    <div style="width:12px;height:12px;background:var(--am);border-radius:50%;
-         flex-shrink:0;animation:lpulse 1s ease-in-out infinite"></div>
-  </div>
-  <!-- Zeile 5: Fehler -->
-  <div id="upd-error-row" class="sr" style="display:none">
-    <div class="si">
-      <div class="sl" style="color:var(--rd)">&#x26A0; Fehler</div>
-      <div class="sd" id="upd-error-msg" style="word-break:break-word"></div>
-    </div>
-    <button onclick="updReset()" class="btn br"
-      style="padding:7px 14px;font-size:.82rem;flex-shrink:0">Schließen</button>
-  </div>
-</div></div>
-
 <div class="sg"><div class="sgl">Über diese App</div><div class="sc">
   <div class="sr"><div class="si"><div class="sl">{{ project }}</div><div class="sd">Zisterne Wasserstandsüberwachung</div></div>
     <span style="padding:4px 12px;background:var(--bls);color:var(--bl);border-radius:100px;font-size:.8rem;font-weight:600;font-family:'DM Mono',monospace">v{{ version }}</span>
@@ -1466,108 +1232,11 @@ setInterval(loadWifi,30000);
   <div class="sr"><div class="si"><div class="sl">Autor</div><div class="sd"><a href="mailto:{{ email }}" style="color:var(--bl)">{{ email }}</a></div></div>
     <span style="font-size:.9rem;font-weight:500">{{ author }}</span>
   </div>
-  <div class="sr"><div class="si"><div class="sl">Plattform</div><div class="sd">SR04M-2 UART Ultraschallsensor</div></div>
+  <div class="sr"><div class="si"><div class="sl">Plattform</div><div class="sd">JSN-SR04T Ultraschallsensor</div></div>
     <span style="font-size:.85rem;color:var(--mu)">Raspberry Pi Zero 2W</span>
   </div>
 </div></div>
-<footer>{{ cfg.name }} · v{{ version }} · {{ author }} · <a href="mailto:{{ email }}" style="color:inherit">{{ email }}</a></footer>
-</div>
-<script>
-// ── Software-Update UI ────────────────────────────────────────────────────────
-let _updPoll = null;
-
-function _updShow(id) {
-  ['upd-available-row','upd-progress-row','upd-restart-row','upd-error-row']
-    .forEach(r => { document.getElementById(r).style.display = (r===id) ? '' : 'none'; });
-}
-
-async function updPruefen() {
-  const btn = document.getElementById('upd-check-btn');
-  const txt = document.getElementById('upd-status-txt');
-  btn.disabled = true; btn.textContent = '…';
-  txt.textContent = 'Suche nach Updates…';
-  _updShow(null);
-  try {
-    const d = await fetch('/api/update/check').then(r => r.json());
-    if (d.error) {
-      txt.textContent = 'Fehler: ' + d.error;
-    } else if (d.update_available) {
-      txt.textContent = 'Neue Version gefunden!';
-      document.getElementById('upd-new-version-txt').textContent =
-        'v' + d.current + ' → v' + d.latest +
-        (d.release_name ? ' · ' + d.release_name : '');
-      _updShow('upd-available-row');
-    } else {
-      txt.textContent = '✓ Bereits aktuell (v' + d.current + ')';
-    }
-  } catch(e) {
-    txt.textContent = 'Keine Verbindung zu GitHub';
-  }
-  btn.disabled = false; btn.textContent = 'Prüfen';
-}
-
-async function updStarten() {
-  if (!confirm(
-    'Update installieren?\\n\\n' +
-    '• Die Seite ist ca. 30 Sekunden nicht erreichbar\\n' +
-    '• Bei Fehler wird automatisch ein Rollback durchgeführt\\n\\n' +
-    'Fortfahren?')) return;
-  document.getElementById('upd-install-btn').disabled = true;
-  document.getElementById('upd-progress-bar').style.width = '5%';
-  document.getElementById('upd-progress-pct').textContent = '5%';
-  document.getElementById('upd-progress-msg').textContent = 'Starte…';
-  _updShow('upd-progress-row');
-  try {
-    const r = await fetch('/api/update/start', {method: 'POST'});
-    if (!r.ok) {
-      const e = await r.json();
-      throw new Error(e.error || r.status);
-    }
-  } catch(e) {
-    _updShow('upd-error-row');
-    document.getElementById('upd-error-msg').textContent = 'Start fehlgeschlagen: ' + e.message;
-    return;
-  }
-  _updPoll = setInterval(_updPollStatus, 900);
-}
-
-async function _updPollStatus() {
-  try {
-    const s = await fetch('/api/update/status').then(r => r.json());
-    document.getElementById('upd-progress-bar').style.width = s.progress + '%';
-    document.getElementById('upd-progress-pct').textContent = s.progress + '%';
-    document.getElementById('upd-progress-msg').textContent = s.message || '';
-    if (s.state === 'restarting' || s.progress >= 90) {
-      clearInterval(_updPoll); _updPoll = null;
-      _updShow('upd-restart-row');
-      setTimeout(_updWaitReload, 6000);
-    } else if (s.state === 'error') {
-      clearInterval(_updPoll); _updPoll = null;
-      _updShow('upd-error-row');
-      document.getElementById('upd-error-msg').textContent = s.message;
-    }
-  } catch(e) {
-    // Verbindungsabbruch = Neustart läuft → normal
-    clearInterval(_updPoll); _updPoll = null;
-    _updShow('upd-restart-row');
-    setTimeout(_updWaitReload, 8000);
-  }
-}
-
-function _updWaitReload() {
-  fetch('/api/version', {signal: AbortSignal.timeout(3000)})
-    .then(() => location.reload())
-    .catch(() => setTimeout(_updWaitReload, 3000));
-}
-
-function updReset() {
-  _updShow(null);
-  document.getElementById('upd-status-txt').textContent =
-    'Klicke "Prüfen" um nach Updates zu suchen';
-}
-// ─────────────────────────────────────────────────────────────────────────────
-</script>
-</body></html>"""
+<footer>{{ cfg.name }} · v{{ version }} · {{ author }} · <a href="mailto:{{ email }}" style="color:inherit">{{ email }}</a></footer></div></body></html>"""
 
 def liter_aktuell():
     """Aktuellen Inhalt und Zu/Abfluss seit letzter Messung berechnen"""
@@ -1662,15 +1331,7 @@ def verbrauch_prognose():
 
 
 def regenereignisse():
-    """Erkennt Regenereignisse (Füllstand steigt anhaltend an) der letzten 30 Tage.
-
-    Filterkriterien gegen Sensorrauschen:
-    - Anstieg muss mindestens MIN_DAUER_MESSUNGEN aufeinanderfolgende Messungen andauern
-    - Gesamtvolumen muss mindestens MIN_ZUFLUSS_L Liter betragen
-    """
-    MIN_DAUER_MESSUNGEN = 3   # mind. 3 aufeinanderfolgende steigende Messungen (~3 Min.)
-    MIN_ZUFLUSS_L       = 30  # mind. 30 Liter Gesamtzufluss
-
+    """Erkennt Regenereignisse (Füllstand steigt schnell an) der letzten 30 Tage"""
     kap = CFG["kapazitaet_l"]
     with sqlite3.connect(DB_PFAD) as c:
         rows = c.execute("""
@@ -1682,24 +1343,21 @@ def regenereignisse():
     i = 0
     while i < len(rows) - 1:
         delta = rows[i+1][1] - rows[i][1]
-        # Initialer Anstieg: >3% zwischen zwei Messungen
+        # Zufluss-Ereignis: >3% Anstieg = Regen oder Befüllung
         if delta >= 3.0:
-            # Wie weit geht der anhaltende Anstieg?
+            # Wie weit geht der Anstieg?
             start_f = rows[i][1]
             start_t = rows[i][0]
             j = i + 1
             while j < len(rows) - 1 and rows[j+1][1] > rows[j][1]:
                 j += 1
             end_f = rows[j][1]
-            dauer = j - i  # Anzahl aufeinanderfolgender Messungen im Anstieg
             zufluss_l = round((end_f - start_f) / 100 * kap, 0)
-            # Nur echte Ereignisse: ausreichend lang und ausreichend viel
-            if dauer >= MIN_DAUER_MESSUNGEN and zufluss_l >= MIN_ZUFLUSS_L:
-                ereignisse.append({
-                    "zeitpunkt": start_t,
-                    "zufluss_l": int(zufluss_l),
-                    "anstieg_pct": round(end_f - start_f, 1),
-                })
+            ereignisse.append({
+                "zeitpunkt": start_t,
+                "zufluss_l": int(zufluss_l),
+                "anstieg_pct": round(end_f - start_f, 1),
+            })
             i = j + 1
         else:
             i += 1
@@ -1902,13 +1560,6 @@ def index():
 @app.route('/api/aktuell')
 def api_aktuell(): return jsonify(db_letzte())
 
-@app.route('/api/messen', methods=['POST'])
-def api_messen():
-    """Live-Messung: triggert sofortige Sensormessung und gibt Ergebnis zurück"""
-    messen()
-    d = db_letzte()
-    return jsonify(d if d else {'fehler': 'Messung fehlgeschlagen'})
-
 @app.route('/api/range')
 def api_range():
     return jsonify(db_range(
@@ -1945,12 +1596,7 @@ def kal_setze_leer():
 
 @app.route('/kalibrierung/testmessung', methods=['POST'])
 def kal_test():
-    a = abstand_messen()
-    if a is None:
-        return redirect('/kalibrierung?err=Sensor+nicht+erreichbar+–+Verkabelung+prüfen')
-    f, w = fuellstand(a)
-    db_speichern(round(a, 1), f, w)
-    return redirect(f'/kalibrierung?ok=Messung:+{round(a,1)}+cm+({f}%+voll)')
+    messen(); return redirect('/kalibrierung?ok=Testmessung+durchgeführt')
 
 @app.route('/api/wifi')
 def api_wifi():
@@ -1976,11 +1622,6 @@ def api_wifi_connect():
             capture_output=True, text=True, timeout=35
         )
         if r.returncode == 0:
-            # autoconnect sicherstellen damit Pi nach Neustart wieder verbindet
-            _sp.run(['nmcli', 'connection', 'modify', ssid,
-                     'connection.autoconnect', 'yes',
-                     'connection.autoconnect-priority', '10'],
-                    capture_output=True, timeout=8)
             return jsonify({'ok': True, 'ssid': ssid})
         else:
             fehler = r.stderr.strip() or r.stdout.strip() or 'Verbindung fehlgeschlagen'
@@ -2130,11 +1771,6 @@ def _portal_server():
                                'password',pw,'ifname','wlan0'],
                               capture_output=True,text=True,timeout=35)
                     if r.returncode==0:
-                        # autoconnect sicherstellen damit Pi nach Neustart wieder verbindet
-                        _sp.run(['nmcli','connection','modify',ssid,
-                                 'connection.autoconnect','yes',
-                                 'connection.autoconnect-priority','10'],
-                                capture_output=True,timeout=8)
                         _sp.run(['nmcli','connection','delete','Zisterne-Hotspot'],
                                 capture_output=True,timeout=8)
                         _portal_aktiv = False
@@ -2175,7 +1811,7 @@ def einstellungen():
 @app.route('/einstellungen/speichern', methods=['POST'])
 def ein_speichern():
     feld=request.form.get('feld'); wert=request.form.get('wert','').strip()
-    num={'intervall_sek':(1,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(1,500000),'dachflaeche_m2':(1,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
+    num={'intervall_sek':(10,3600),'warnung_leer':(1,50),'warnung_voll':(50,99),'kapazitaet_l':(100,500000),'dachflaeche_m2':(10,10000),'standort_lat':(-90,90),'standort_lon':(-180,180)}
     if feld in ('abfluss_koeff',):
         try:
             v=float(wert)
@@ -2214,44 +1850,8 @@ def api_version():
         "author":       __author__,
         "email":        __email__,
         "project":      __project__,
-        "platform":     "Raspberry Pi Zero 2W + SR04M-2 UART"
+        "platform":     "Raspberry Pi Zero 2W + JSN-SR04T"
     })
-
-@app.route('/api/update/check')
-def api_update_check():
-    try:
-        req = urllib.request.Request(
-            _GITHUB_API_URL,
-            headers={"User-Agent": "zisterne-monitor-updater"}
-        )
-        with urllib.request.urlopen(req, timeout=8) as r:
-            data = json.loads(r.read())
-        latest  = data["tag_name"].lstrip("v")
-        current = __version__
-        newer   = (tuple(int(x) for x in latest.split("."))
-                   > tuple(int(x) for x in current.split(".")))
-        _UPDATE_STATUS["latest"] = latest
-        return jsonify({
-            "current":          current,
-            "latest":           latest,
-            "update_available": newer,
-            "release_name":     data.get("name", "")
-        })
-    except Exception as exc:
-        return jsonify({"error": str(exc), "current": __version__}), 500
-
-@app.route('/api/update/start', methods=['POST'])
-def api_update_start():
-    if _UPDATE_STATUS["state"] == "running":
-        return jsonify({"error": "Update läuft bereits"}), 409
-    _UPDATE_STATUS.update({"state": "running", "message": "Starte…", "progress": 5})
-    t = _threading.Thread(target=_update_worker, daemon=True)
-    t.start()
-    return jsonify({"ok": True})
-
-@app.route('/api/update/status')
-def api_update_status():
-    return jsonify(_UPDATE_STATUS)
 
 if __name__ == '__main__':
     db_init(); messen()

@@ -1,46 +1,13 @@
 Zisterne Monitor
 ================
-Version:    0.7.7
-Datum:      2026-04-13
+Version:    0.7.0
+Datum:      2026-04-06
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
 Plattform:  Raspberry Pi Zero 2W + SR04M-2 (UART)
 
 Changelog
 ---------
-0.7.7  (2026-04-13)
-  - FIX: Zufluss-Erkennung filtert jetzt Sensorrauschen – Ereignis muss mind.
-          3 aufeinanderfolgende steigende Messungen (~3 Min.) andauern und
-          mind. 30 Liter Gesamtvolumen erreichen
-
-0.7.6  (2026-04-11)
-  - FIX: Dachfläche erlaubt jetzt Werte ab 1 m² (war min. 10 m²)
-
-0.7.5  (2026-04-11)
-  - FIX: Update-Button Einstellungsseite – \n in JS-Strings war echter Zeilenumbruch (SyntaxError)
-
-0.7.4  (2026-04-11)
-  - FIX: Kapazität erlaubt jetzt Werte ab 1L (war min. 100L)
-  - FIX: Messintervall erlaubt jetzt Werte ab 1s (war min. 10s)
-
-0.7.3  (2026-04-11)
-  - FIX: Captive Portal + /api/wifi/connect setzen autoconnect=yes nach WLAN-Verbindung
-  - FIX: Pi verbindet sich nach Neustart/Stromausfall wieder automatisch mit gespeichertem WLAN
-
-0.7.2  (2026-04-11)
-  - FIX: firstboot.sh – Temporärer 512 MB Swap vor pip install (verhindert OOM-Crash auf Pi Zero)
-
-0.7.1  (2026-04-08)
-  - NEU: Auto-Update direkt aus der Einstellungsseite (GitHub → Pi)
-  - NEU: Backup vor Update (app.py.bak), automatischer Rollback bei Fehler
-  - NEU: Rollback-Watcher als separater Prozess (überlebt Service-Neustart)
-  - NEU: /api/update/check – aktuelle vs. neueste GitHub-Release-Version
-  - NEU: /api/update/start – startet Update als Hintergrund-Thread
-  - NEU: /api/update/status – Fortschrittsabfrage (polling)
-  - NEU: Seite lädt automatisch neu nach erfolgreichem Update
-  - FIX: /api/version: Plattform SR04M-2 UART (war JSN-SR04T)
-  - FIX: HTML_EIN Plattform-Anzeige SR04M-2 (war JSN-SR04T)
-
 0.7.0  (2026-04-06)
   - NEU: UART Auto-Output-Modus statt Trigger-Modus (kein \x01 mehr)
   - NEU: _parse_uart_frame() mit Checksum-Verifizierung (FF H L SUM)
