@@ -1,6 +1,6 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║   ZISTERNE MONITOR – First Boot Setup v0.7.7                   ║
+# ║   ZISTERNE MONITOR – First Boot Setup v0.7.8                   ║
 # ║   Tobias Meier · admin@secutobs.com                            ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
@@ -40,7 +40,7 @@ exec > >(tee -a "$LOG") 2>&1
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║   ZISTERNE MONITOR – FIRST BOOT v0.7.7      ║"
+echo "║   ZISTERNE MONITOR – FIRST BOOT v0.7.8      ║"
 echo "║   $(date '+%Y-%m-%d %H:%M:%S')              ║"
 echo "╚══════════════════════════════════════════════╝"
 echo "  Boot-Dir: $BOOT_DIR"
@@ -732,19 +732,24 @@ if ! grep -q "^dtoverlay=disable-bt" "${BOOT_DIR}/config.txt" 2>/dev/null; then
     echo "✓ dtoverlay=disable-bt gesetzt (PL011 UART freigegeben)"
 fi
 
-# Serial Console aus cmdline.txt entfernen (blockiert UART)
+# Serial Console aus cmdline.txt entfernen (blockiert UART – verursacht sysrq-Flood)
+# Entfernt alle Varianten: serial0, ttyAMA0, ttyS0 (Mini-UART vor disable-bt)
 if [ -f "${BOOT_DIR}/cmdline.txt" ]; then
-    sed -i 's/ console=serial[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
-    sed -i 's/console=serial[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    sed -i 's/ console=serial[^ ]*//g'  "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    sed -i 's/console=serial[^ ]* //g'  "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
     sed -i 's/ console=ttyAMA[^ ]*//g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
     sed -i 's/console=ttyAMA[^ ]* //g' "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
-    echo "✓ Serial Console aus cmdline.txt entfernt"
+    sed -i 's/ console=ttyS[^ ]*//g'   "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    sed -i 's/console=ttyS[^ ]* //g'   "${BOOT_DIR}/cmdline.txt" 2>/dev/null || true
+    echo "✓ Serial Console aus cmdline.txt entfernt (serial0/ttyAMA0/ttyS0)"
 fi
 
-# Serial Getty Service deaktivieren
-systemctl disable serial-getty@ttyAMA0.service 2>/dev/null || true
-systemctl stop serial-getty@ttyAMA0.service 2>/dev/null || true
-echo "✓ serial-getty@ttyAMA0 deaktiviert"
+# Serial Getty Services deaktivieren (alle Varianten)
+for SVC in ttyAMA0 ttyS0; do
+    systemctl disable serial-getty@${SVC}.service 2>/dev/null || true
+    systemctl stop    serial-getty@${SVC}.service 2>/dev/null || true
+done
+echo "✓ serial-getty (ttyAMA0 + ttyS0) deaktiviert"
 
 # systemd.run aus cmdline.txt entfernen (Einmalig-Ausführung sicherstellen)
 if grep -q "systemd.run" "${BOOT_DIR}/cmdline.txt" 2>/dev/null; then

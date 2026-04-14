@@ -1,13 +1,18 @@
 Zisterne Monitor
 ================
-Version:    0.7.7
-Datum:      2026-04-13
+Version:    0.7.8
+Datum:      2026-04-14
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
 Plattform:  Raspberry Pi Zero 2W + SR04M-2 (UART)
 
 Changelog
 ---------
+0.7.8  (2026-04-14)
+  - FIX: firstboot.sh entfernt serielle Konsole jetzt auch für ttyS0 (Mini-UART)
+          → verhindert sysrq-Flood beim ersten Boot wenn Sensor angeschlossen
+  - FIX: serial-getty wird für ttyAMA0 UND ttyS0 deaktiviert
+
 0.7.7  (2026-04-13)
   - FIX: Zufluss-Erkennung filtert jetzt Sensorrauschen – Ereignis muss mind.
           3 aufeinanderfolgende steigende Messungen (~3 Min.) andauern und

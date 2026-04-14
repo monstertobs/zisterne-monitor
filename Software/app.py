@@ -4,16 +4,16 @@
 ║              ZISTERNE MONITOR                            ║
 ║  Raspberry Pi Zero 2W + SR04M-2 UART Ultraschallsensor  ║
 ╠══════════════════════════════════════════════════════════╣
-║  Version:  0.7.7                                         ║
-║  Datum:    2026-04-13                                    ║
+║  Version:  0.7.8                                         ║
+║  Datum:    2026-04-14                                    ║
 ║  Autor:    Tobias Meier                                  ║
 ║  E-Mail:   admin@secutobs.com                            ║
 ╚══════════════════════════════════════════════════════════╝
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.7"
-__version_date__ = "2026-04-13"
+__version__     = "0.7.8"
+__version_date__ = "2026-04-14"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
 __project__     = "Zisterne Monitor"
