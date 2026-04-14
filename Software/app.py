@@ -12,7 +12,7 @@
 """
 
 # ── Versionsinformation ──────────────────────────────────────
-__version__     = "0.7.8"
+__version__     = "0.7.9"
 __version_date__ = "2026-04-14"
 __author__      = "Tobias Meier"
 __email__       = "admin@secutobs.com"
@@ -421,6 +421,9 @@ footer{margin-top:40px;text-align:center;font-size:.75rem;color:var(--mu);font-f
   border-radius:12px;padding:7px 16px 8px;min-width:210px;text-align:center;
   box-shadow:0 2px 12px rgba(0,0,0,.12);z-index:30;white-space:nowrap;
 }
+@media(max-width:680px){
+  .fill-indicator{left:auto;right:8px;transform:none;min-width:160px;padding:6px 12px 7px;}
+}
 .fi-title{font-size:.7rem;color:#666;margin-bottom:5px;letter-spacing:.2px}
 .fi-title strong{color:#0d1b2a}
 .fi-bar{height:7px;background:#e0e0e0;border-radius:4px;overflow:hidden}
@@ -620,7 +623,7 @@ HTML_INDEX = """<!DOCTYPE html>
       </div>
 
       <!-- Zulauf-Label -->
-      <div class="pipe-label" id="lbl-inlet" style="top:3%;left:2%">
+      <div class="pipe-label" id="lbl-inlet" style="left:2%;top:40%">
         <span class="pipe-dot" style="background:#0ea5e9"></span>Zulauf von Dach
       </div>
 
@@ -968,6 +971,9 @@ function positionPipes(){
   // Zulauf horizontal
   const ph=document.getElementById('pipe-h');
   if(ph){ph.style.top=(inletY-5)+'px';ph.style.left='0';ph.style.width=(relL+2)+'px';}
+  // Zulauf-Label neben Rohr-Eingang (nicht oben – verhindert Überlappung mit fill-indicator)
+  const lin=document.getElementById('lbl-inlet');
+  if(lin){lin.style.top=(inletY-14)+'px';lin.style.bottom='auto';}
   // Überlauf
   const ovY=relT+ciH*0.13;
   const pov=document.getElementById('pipe-overflow');

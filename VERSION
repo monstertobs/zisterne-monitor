@@ -1,6 +1,6 @@
 Zisterne Monitor
 ================
-Version:    0.7.8
+Version:    0.7.9
 Datum:      2026-04-14
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
@@ -8,6 +8,11 @@ Plattform:  Raspberry Pi Zero 2W + SR04M-2 (UART)
 
 Changelog
 ---------
+0.7.9  (2026-04-14)
+  - FIX: Überlappung von "Zulauf von Dach"-Label und Füllstandsanzeige auf Mobil
+          → Label wird jetzt via positionPipes() auf Rohrhöhe positioniert (nicht mehr fest oben-links)
+          → Füllstandsanzeige auf Mobile nach rechts verschoben (right:8px statt zentriert)
+
 0.7.8  (2026-04-14)
   - FIX: firstboot.sh entfernt serielle Konsole jetzt auch für ttyS0 (Mini-UART)
           → verhindert sysrq-Flood beim ersten Boot wenn Sensor angeschlossen
